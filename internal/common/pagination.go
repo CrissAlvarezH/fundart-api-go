@@ -25,10 +25,9 @@ func GetPaginationParams(query url.Values) (PaginationData, error) {
 		if err != nil {
 			return PaginationData{}, errors.New("error to get 'page_size' query")
 		}
-	}
-
-	if pageSize < 1 {
-		return PaginationData{}, errors.New("'page_size' can't be lower than 1")
+		if pageSize < 1 {
+			return PaginationData{}, errors.New("'page_size' can't be lower than 1")
+		}
 	}
 
 	page := 1
@@ -39,10 +38,9 @@ func GetPaginationParams(query url.Values) (PaginationData, error) {
 		if err != nil {
 			return PaginationData{}, errors.New("error to get 'page' query")
 		}
-	}
-
-	if page < 1 {
-		return PaginationData{}, errors.New("'page' can't be lower than 1")
+		if page < 1 {
+			return PaginationData{}, errors.New("'page' can't be lower than 1")
+		}
 	}
 
 	limit := page * pageSize
