@@ -1,6 +1,8 @@
 package memoryrepo
 
-import users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
+import (
+	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
+)
 
 type MemoryUserRepository struct {
 	users []users.User
@@ -35,16 +37,21 @@ func (r *MemoryUserRepository) List(
 		}
 	}
 	data := make([]users.User, 0, len(filtered))
-	if len(filtered) > limit && len(filtered) > offset {
+	if len(filtered) >= limit && len(filtered) >= offset {
 		data = filtered[offset:limit]
-	} else if len(filtered) > offset && len(filtered) < limit {
+	} else if len(filtered) >= offset && len(filtered) < limit {
 		data = filtered[offset:]
 	}
 	return data, len(filtered), nil
 }
 
-func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, error) {
-	return users.User{}, nil
+func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
+	for _, u := range r.users {
+		if u.ID == ID {
+			return u, true
+		}
+	}
+	return users.User{}, false
 }
 
 func (r *MemoryUserRepository) Add(

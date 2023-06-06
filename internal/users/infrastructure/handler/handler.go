@@ -3,8 +3,10 @@ package handler
 import (
 	"github.com/CrissAlvarezH/fundart-api/internal/common"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
+	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type UserHandler struct {
@@ -16,7 +18,8 @@ func NewUserHandler(service services.UserService) UserHandler {
 }
 
 func (h *UserHandler) AddRoutes(e *gin.Engine) {
-	e.GET("/users", h.List)
+	e.GET("/api/v1/users", h.List)
+	e.GET("/api/v1/users/:id", h.GetByID)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -43,4 +46,21 @@ func (h *UserHandler) List(c *gin.Context) {
 		"pagination": common.PaginationJson(userCount, pageParams.Page, pageParams.PageSize),
 		"result":     usersDTO,
 	})
+}
+
+func (h *UserHandler) GetByID(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not valid number"})
+		return
+	}
+	user, ok := h.service.GetByID(users.UserID(id))
+	if ok == false {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	userDTO := MapToListUserDTO(user)
+
+	c.JSON(http.StatusOK, userDTO)
 }

@@ -32,7 +32,7 @@ func (s *UserService) List(
 	return s.repo.List(filters, limit, offset)
 }
 
-func (s *UserService) GetByID(ID users.UserID) (users.User, error) {
+func (s *UserService) GetByID(ID users.UserID) (users.User, bool) {
 	return s.repo.GetByID(ID)
 }
 

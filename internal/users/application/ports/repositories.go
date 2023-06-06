@@ -4,7 +4,7 @@ import users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 
 type UserRepository interface {
 	List(filters map[string]string, limit int, offset int) ([]users.User, int, error)
-	GetByID(ID users.UserID) (users.User, error)
+	GetByID(ID users.UserID) (users.User, bool)
 	Add(
 		name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 	) (users.User, error)
