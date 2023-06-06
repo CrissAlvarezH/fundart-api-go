@@ -44,7 +44,7 @@ func GetPaginationParams(query url.Values) (PaginationData, error) {
 	}
 
 	limit := page * pageSize
-	offset := limit - pageSize
+	offset := (page - 1) * pageSize
 
 	var filters = make(map[string]string, len(query))
 	for k, _ := range query {

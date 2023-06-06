@@ -13,14 +13,34 @@ func NewMemoryUserRepository(users []users.User) *MemoryUserRepository {
 func (r *MemoryUserRepository) List(
 	filters map[string]string, limit int, offset int,
 ) ([]users.User, int, error) {
-	// TODO slick users array with 'limit' and 'offset' to create pagination
-	data := make([]users.User, 0)
-	if len(r.users) > limit && len(r.users) > offset {
-		data = r.users[offset:limit]
-	} else if len(r.users) > offset && len(r.users) < limit {
-		data = r.users[offset:]
+	filtered := make([]users.User, 0, len(r.users))
+	if len(filters) == 0 {
+		filtered = r.users
+	} else {
+		for _, v := range r.users {
+			name, ok := filters["name"]
+			if ok == true && v.Name == name {
+				filtered = append(filtered, v)
+			}
+
+			email, ok := filters["email"]
+			if ok == true && v.Email == email {
+				filtered = append(filtered, v)
+			}
+
+			phone, ok := filters["phone"]
+			if ok == true && v.Phone == phone {
+				filtered = append(filtered, v)
+			}
+		}
 	}
-	return data, len(r.users), nil
+	data := make([]users.User, 0, len(filtered))
+	if len(filtered) > limit && len(filtered) > offset {
+		data = filtered[offset:limit]
+	} else if len(filtered) > offset && len(filtered) < limit {
+		data = filtered[offset:]
+	}
+	return data, len(filtered), nil
 }
 
 func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, error) {
