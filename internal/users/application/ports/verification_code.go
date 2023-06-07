@@ -8,5 +8,5 @@ const (
 )
 
 type VerificationCodeManager interface {
-	Send(code string, provider MessageProvider) error
+	Send(code string, target string, provider MessageProvider) error
 }

@@ -92,16 +92,17 @@ func (s *UserService) UpdateAddress(
 	return s.addressRepo.Update(addressID, department, city, address, receiverPhone, receiverName)
 }
 
-func (s *UserService) SendVerificationCode(ID users.UserID) error {
+func (s *UserService) SendVerificationCode(user users.User) error {
 	codeRangeMin := 1000
 	codeRangeMax := 9999
 	code := strconv.Itoa(rand.Intn(codeRangeMax-codeRangeMin) + codeRangeMin)
-	err := s.verificationCodeManager.Send(code, ports.MessageProviderEmail)
+
+	err := s.verificationCodeManager.Send(code, user.Email, ports.MessageProviderEmail)
 	if err != nil {
 		return err
 	}
 
-	err = s.repo.SaveVerificationCode(ID, code)
+	err = s.repo.SaveVerificationCode(user.ID, code)
 	return err
 }
 

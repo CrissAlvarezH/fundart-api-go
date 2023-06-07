@@ -12,7 +12,7 @@ func NewMockVerificationCodeManager() *MockVerificationCodeManager {
 	return &MockVerificationCodeManager{}
 }
 
-func (m *MockVerificationCodeManager) Send(code string, provider ports.MessageProvider) error {
+func (m *MockVerificationCodeManager) Send(code string, target string, provider ports.MessageProvider) error {
 	log.Println("Send code:", code, "with provider:", provider)
 	return nil
 }

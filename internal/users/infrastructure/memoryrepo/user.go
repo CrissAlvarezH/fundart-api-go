@@ -2,20 +2,60 @@ package memoryrepo
 
 import (
 	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
+	"time"
 )
 
-type MemoryUserRepository struct {
-	users []users.User
+type MemoryUser struct {
+	ID        users.UserID
+	Name      string
+	Email     string
+	Password  string
+	Phone     string
+	IsActive  bool
+	CreatedAt time.Time
+	Addresses []users.Address
+	Scopes    []users.ScopeName
 }
 
-func NewMemoryUserRepository(users []users.User) *MemoryUserRepository {
+func mapToMemoryUser(user users.User, password string) MemoryUser {
+	return MemoryUser{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Password:  password,
+		Phone:     user.Phone,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt,
+		Addresses: user.Addresses,
+		Scopes:    user.Scopes,
+	}
+}
+
+func mapToUser(memoryUser MemoryUser) users.User {
+	return users.User{
+		ID:        memoryUser.ID,
+		Name:      memoryUser.Name,
+		Email:     memoryUser.Email,
+		Phone:     memoryUser.Phone,
+		IsActive:  memoryUser.IsActive,
+		CreatedAt: memoryUser.CreatedAt,
+		Addresses: memoryUser.Addresses,
+		Scopes:    memoryUser.Scopes,
+	}
+}
+
+type MemoryUserRepository struct {
+	users []MemoryUser
+}
+
+func NewMemoryUserRepository(users []MemoryUser) *MemoryUserRepository {
 	return &MemoryUserRepository{users: users}
 }
 
 func (r *MemoryUserRepository) List(
 	filters map[string]string, limit int, offset int,
 ) ([]users.User, int, error) {
-	filtered := make([]users.User, 0, len(r.users))
+	filtered := make([]MemoryUser, 0, len(r.users))
 	if len(filters) == 0 {
 		filtered = r.users
 	} else {
@@ -36,19 +76,24 @@ func (r *MemoryUserRepository) List(
 			}
 		}
 	}
-	data := make([]users.User, 0, len(filtered))
+	data := make([]MemoryUser, 0, len(filtered))
 	if len(filtered) >= limit && len(filtered) >= offset {
 		data = filtered[offset:limit]
 	} else if len(filtered) >= offset && len(filtered) < limit {
 		data = filtered[offset:]
 	}
-	return data, len(filtered), nil
+
+	result := make([]users.User, 0, len(data))
+	for _, u := range data {
+		result = append(result, mapToUser(u))
+	}
+	return result, len(filtered), nil
 }
 
 func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 	for _, u := range r.users {
 		if u.ID == ID {
-			return u, true
+			return mapToUser(u), true
 		}
 	}
 	return users.User{}, false
@@ -57,7 +102,17 @@ func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 func (r *MemoryUserRepository) Add(
 	name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 ) (users.User, error) {
-	return users.User{}, nil
+	lastUser := r.users[len(r.users)-1]
+	newUser := users.User{
+		ID:       lastUser.ID + 1,
+		Name:     name,
+		Email:    email,
+		Phone:    phone,
+		IsActive: isActive,
+		Scopes:   scopes,
+	}
+	r.users = append(r.users, mapToMemoryUser(newUser, password))
+	return newUser, nil
 }
 
 func (r *MemoryUserRepository) Update(

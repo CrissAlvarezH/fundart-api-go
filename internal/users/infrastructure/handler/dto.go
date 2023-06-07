@@ -9,3 +9,10 @@ type ListUserDTO struct {
 	Phone  string            `json:"phone"`
 	Scopes []users.ScopeName `json:"scopes"`
 }
+
+type RegisterUserDTO struct {
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Phone    string `json:"phone"`
+	Password string `json:"password" binding:"required,gte=5"`
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
 	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -20,6 +21,7 @@ func NewUserHandler(service services.UserService) UserHandler {
 func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.GET("/api/v1/users", h.List)
 	e.GET("/api/v1/users/:id", h.GetByID)
+	e.POST("/api/v1/users/", h.Register)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -63,4 +65,31 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	userDTO := MapToListUserDTO(user)
 
 	c.JSON(http.StatusOK, userDTO)
+}
+
+func (h *UserHandler) Register(c *gin.Context) {
+	var body RegisterUserDTO
+	if err := c.BindJSON(&body); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.service.Add(
+		body.Name, body.Email, body.Password, body.Phone,
+		true, []users.ScopeName{},
+	)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.service.SendVerificationCode(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, MapToListUserDTO(user))
 }
