@@ -16,3 +16,7 @@ type RegisterUserDTO struct {
 	Phone    string `json:"phone"`
 	Password string `json:"password" binding:"required,gte=5"`
 }
+
+type ValidateVerificationCodeDTO struct {
+	Code string `json:"code" binding:"required"`
+}

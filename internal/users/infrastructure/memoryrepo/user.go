@@ -1,20 +1,22 @@
 package memoryrepo
 
 import (
+	"errors"
 	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"time"
 )
 
 type MemoryUser struct {
-	ID        users.UserID
-	Name      string
-	Email     string
-	Password  string
-	Phone     string
-	IsActive  bool
-	CreatedAt time.Time
-	Addresses []users.Address
-	Scopes    []users.ScopeName
+	ID               users.UserID
+	Name             string
+	Email            string
+	Password         string
+	Phone            string
+	IsActive         bool
+	CreatedAt        time.Time
+	Addresses        []users.Address
+	Scopes           []users.ScopeName
+	VerificationCode string
 }
 
 func mapToMemoryUser(user users.User, password string) MemoryUser {
@@ -54,7 +56,7 @@ func NewMemoryUserRepository(users []MemoryUser) *MemoryUserRepository {
 
 func (r *MemoryUserRepository) List(
 	filters map[string]string, limit int, offset int,
-) ([]users.User, int, error) {
+) ([]users.User, int) {
 	filtered := make([]MemoryUser, 0, len(r.users))
 	if len(filters) == 0 {
 		filtered = r.users
@@ -76,6 +78,15 @@ func (r *MemoryUserRepository) List(
 			}
 		}
 	}
+
+	onlyActives := make([]MemoryUser, 0, len(filtered))
+	for _, u := range filtered {
+		if u.IsActive == true {
+			onlyActives = append(onlyActives, u)
+		}
+	}
+	filtered = onlyActives
+
 	data := make([]MemoryUser, 0, len(filtered))
 	if len(filtered) >= limit && len(filtered) >= offset {
 		data = filtered[offset:limit]
@@ -87,7 +98,7 @@ func (r *MemoryUserRepository) List(
 	for _, u := range data {
 		result = append(result, mapToUser(u))
 	}
-	return result, len(filtered), nil
+	return result, len(filtered)
 }
 
 func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
@@ -125,8 +136,18 @@ func (r *MemoryUserRepository) Deactivate(ID users.UserID) error {
 	return nil
 }
 
-func (r *MemoryUserRepository) ListAddress(ID users.UserID) (users.Address, error) {
-	return users.Address{}, nil
+func (r *MemoryUserRepository) Activate(ID users.UserID) bool {
+	for i, u := range r.users {
+		if u.ID == ID {
+			r.users[i].IsActive = true
+			return true
+		}
+	}
+	return false
+}
+
+func (r *MemoryUserRepository) ListAddresses(ID users.UserID) []users.Address {
+	return make([]users.Address, 0)
 }
 
 func (r *MemoryUserRepository) AttachAddress(ID users.UserID, addressID users.AddressID) error {
@@ -138,9 +159,27 @@ func (r *MemoryUserRepository) DetachAddress(ID users.UserID, addressID users.Ad
 }
 
 func (r *MemoryUserRepository) SaveVerificationCode(ID users.UserID, code string) error {
+	found := false
+	for i, u := range r.users {
+		if u.ID == ID {
+			r.users[i].VerificationCode = code
+			found = true
+			break
+		}
+	}
+
+	if found == false {
+		return errors.New("user not found")
+	}
+
 	return nil
 }
 
-func (r *MemoryUserRepository) ValidateVerificationCode(ID users.UserID, code string) (bool, error) {
-	return false, nil
+func (r *MemoryUserRepository) ValidateVerificationCode(ID users.UserID, code string) bool {
+	for _, u := range r.users {
+		if u.ID == ID {
+			return u.VerificationCode == code
+		}
+	}
+	return false
 }

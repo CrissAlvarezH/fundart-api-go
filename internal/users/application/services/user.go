@@ -28,7 +28,7 @@ func NewUserService(
 
 func (s *UserService) List(
 	filters map[string]string, limit int, offset int,
-) ([]users.User, int, error) {
+) ([]users.User, int) {
 	return s.repo.List(filters, limit, offset)
 }
 
@@ -106,6 +106,12 @@ func (s *UserService) SendVerificationCode(user users.User) error {
 	return err
 }
 
-func (s *UserService) ValidateVerificationCode(ID users.UserID, code string) (bool, error) {
-	return s.repo.ValidateVerificationCode(ID, code)
+func (s *UserService) ValidateVerificationCode(ID users.UserID, code string) bool {
+	isValid := s.repo.ValidateVerificationCode(ID, code)
+
+	if isValid == true {
+		ok := s.repo.Activate(ID)
+		return ok
+	}
+	return false
 }

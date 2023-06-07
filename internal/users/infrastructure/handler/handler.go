@@ -22,6 +22,7 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.GET("/api/v1/users", h.List)
 	e.GET("/api/v1/users/:id", h.GetByID)
 	e.POST("/api/v1/users/", h.Register)
+	e.POST("/api/v1/users/:id/verification-code/", h.ValidateVerificationCode)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -31,13 +32,9 @@ func (h *UserHandler) List(c *gin.Context) {
 		return
 	}
 
-	userResult, userCount, err := h.service.List(
+	userResult, userCount := h.service.List(
 		pageParams.Filters, pageParams.Limit, pageParams.Offset,
 	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "on list users"})
-		return
-	}
 
 	usersDTO := make([]ListUserDTO, 0, len(userResult))
 	for _, user := range userResult {
@@ -75,7 +72,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 
 	user, err := h.service.Add(
 		body.Name, body.Email, body.Password, body.Phone,
-		true, []users.ScopeName{},
+		false, []users.ScopeName{},
 	)
 	if err != nil {
 		log.Println(err)
@@ -90,4 +87,27 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, MapToListUserDTO(user))
+}
+
+func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
+	var body ValidateVerificationCodeDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userWasActivated := h.service.ValidateVerificationCode(users.UserID(userId), body.Code)
+
+	if userWasActivated == false {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"details": "User was activated successfully"})
 }
