@@ -16,7 +16,7 @@ type UserRepository interface {
 		name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 	) (users.User, error)
 	Update(
-		ID users.UserID, name string, email string, phone string, isActive bool, scopes []users.ScopeName,
+		ID users.UserID, name string, email string, phone string, scopes []users.ScopeName,
 	) (users.User, error)
 	Deactivate(ID users.UserID) error
 	Activate(ID users.UserID) bool

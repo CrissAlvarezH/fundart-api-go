@@ -47,9 +47,9 @@ func (s *UserService) Add(
 }
 
 func (s *UserService) Update(
-	ID users.UserID, name string, email string, phone string, isActive bool, scopes []users.ScopeName,
+	ID users.UserID, name string, email string, phone string, scopes []users.ScopeName,
 ) (users.User, error) {
-	return s.repo.Update(ID, name, email, phone, isActive, scopes)
+	return s.repo.Update(ID, name, email, phone, scopes)
 }
 
 func (s *UserService) Deactivate(ID users.UserID) error {

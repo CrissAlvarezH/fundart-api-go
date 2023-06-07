@@ -20,3 +20,10 @@ type RegisterUserDTO struct {
 type ValidateVerificationCodeDTO struct {
 	Code string `json:"code" binding:"required"`
 }
+
+type UpdateUserDTO struct {
+	Name   string            `json:"name" binding:"required"`
+	Email  string            `json:"email" binding:"required"`
+	Phone  string            `json:"phone"`
+	Scopes []users.ScopeName `json:"scopes"`
+}

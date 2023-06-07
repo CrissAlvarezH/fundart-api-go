@@ -1,7 +1,7 @@
 package memoryrepo
 
 import (
-	"errors"
+	"github.com/CrissAlvarezH/fundart-api/internal/users/application/ports"
 	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"time"
 )
@@ -127,9 +127,18 @@ func (r *MemoryUserRepository) Add(
 }
 
 func (r *MemoryUserRepository) Update(
-	ID users.UserID, name string, email string, phone string, isActive bool, scopes []users.ScopeName,
+	ID users.UserID, name string, email string, phone string, scopes []users.ScopeName,
 ) (users.User, error) {
-	return users.User{}, nil
+	for i, u := range r.users {
+		if u.ID == ID {
+			r.users[i].Name = name
+			r.users[i].Email = email
+			r.users[i].Phone = phone
+			r.users[i].Scopes = scopes
+			return mapToUser(r.users[i]), nil
+		}
+	}
+	return users.User{}, ports.UserDoesNotExists
 }
 
 func (r *MemoryUserRepository) Deactivate(ID users.UserID) error {
@@ -169,7 +178,7 @@ func (r *MemoryUserRepository) SaveVerificationCode(ID users.UserID, code string
 	}
 
 	if found == false {
-		return errors.New("user not found")
+		return ports.UserDoesNotExists
 	}
 
 	return nil

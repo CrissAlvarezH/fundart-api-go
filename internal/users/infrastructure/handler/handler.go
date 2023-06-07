@@ -23,6 +23,7 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.GET("/api/v1/users/:id", h.GetByID)
 	e.POST("/api/v1/users/", h.Register)
 	e.POST("/api/v1/users/:id/verification-code/", h.ValidateVerificationCode)
+	e.PUT("/api/v1/users/:id/", h.Update)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -98,7 +99,7 @@ func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
 
 	userId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
 		return
 	}
 
@@ -110,4 +111,28 @@ func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"details": "User was activated successfully"})
+}
+
+func (h *UserHandler) Update(c *gin.Context) {
+	var body UpdateUserDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	user, err := h.service.Update(
+		users.UserID(userId), body.Name, body.Email, body.Phone, body.Scopes,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapToListUserDTO(user))
 }
