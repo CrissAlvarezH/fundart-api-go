@@ -62,9 +62,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	userDTO := MapToListUserDTO(user)
-
-	c.JSON(http.StatusOK, userDTO)
+	c.JSON(http.StatusOK, MapToListUserDTO(user))
 }
 
 func (h *UserHandler) Register(c *gin.Context) {
