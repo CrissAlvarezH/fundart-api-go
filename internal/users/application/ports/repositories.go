@@ -21,17 +21,15 @@ type UserRepository interface {
 	Deactivate(ID users.UserID) error
 	Activate(ID users.UserID) bool
 
-	ListAddresses(ID users.UserID) []users.Address
-	AttachAddress(ID users.UserID, addressID users.AddressID) error
-	DetachAddress(ID users.UserID, addressID users.AddressID) error
-
 	SaveVerificationCode(ID users.UserID, code string) error
 	ValidateVerificationCode(ID users.UserID, code string) bool
 }
 
 type AddressRepository interface {
+	List(ID users.UserID) []users.Address
 	Add(
-		department string, city string, address string, receiverPhone string, receiverName string,
+		userID users.UserID, department string, city string, address string,
+		receiverPhone string, receiverName string,
 	) (users.Address, error)
 	Update(
 		ID users.AddressID, department string, city string, address string,

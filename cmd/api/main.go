@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
-	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure/handler"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure/memoryrepo"
@@ -162,7 +161,7 @@ func main() {
 	}
 	userMemoRepo := memoryrepo.NewMemoryUserRepository(userData)
 
-	addressMemoRepo := memoryrepo.NewMemoryAddressRepository(make([]users.Address, 0))
+	addressMemoRepo := memoryrepo.NewMemoryAddressRepository(make([]memoryrepo.MemoryAddress, 0))
 	mockPassManager := infrastructure.NewMockPasswordManager()
 	mockVerifyCode := notifications.NewMockVerificationCodeManager()
 

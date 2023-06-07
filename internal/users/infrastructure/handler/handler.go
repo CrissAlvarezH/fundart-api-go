@@ -24,6 +24,9 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.POST("/api/v1/users/", h.Register)
 	e.POST("/api/v1/users/:id/verification-code/", h.ValidateVerificationCode)
 	e.PUT("/api/v1/users/:id/", h.Update)
+
+	e.GET("/api/v1/users/:id/addresses", h.ListAddresses)
+	e.POST("/api/v1/users/:id/addresses/", h.AddAddress)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -97,13 +100,13 @@ func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
 		return
 	}
 
-	userId, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
 		return
 	}
 
-	userWasActivated := h.service.ValidateVerificationCode(users.UserID(userId), body.Code)
+	userWasActivated := h.service.ValidateVerificationCode(users.UserID(userID), body.Code)
 
 	if userWasActivated == false {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
@@ -120,14 +123,14 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userId, err := strconv.Atoi(c.Param("id"))
+	userID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
 		return
 	}
 
 	user, err := h.service.Update(
-		users.UserID(userId), body.Name, body.Email, body.Phone, body.Scopes,
+		users.UserID(userID), body.Name, body.Email, body.Phone, body.Scopes,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -135,4 +138,47 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MapToListUserDTO(user))
+}
+
+func (h *UserHandler) ListAddresses(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	addresses := h.service.ListAddresses(users.UserID(userID))
+
+	addressesDTO := make([]ListAddressDTO, 0, len(addresses))
+	for _, a := range addresses {
+		addressesDTO = append(addressesDTO, MapToListAddressDTO(a))
+	}
+
+	c.JSON(http.StatusOK, addressesDTO)
+}
+
+func (h *UserHandler) AddAddress(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	var body CreateAddressDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err = h.service.AddAddress(
+		users.UserID(userID), body.Department, body.City,
+		body.Address, body.ReceiverPhone, body.ReceiverName,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	addresses := h.service.ListAddresses(users.UserID(userID))
+	c.JSON(http.StatusCreated, addresses)
 }

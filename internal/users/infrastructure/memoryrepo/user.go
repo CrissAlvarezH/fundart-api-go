@@ -155,18 +155,6 @@ func (r *MemoryUserRepository) Activate(ID users.UserID) bool {
 	return false
 }
 
-func (r *MemoryUserRepository) ListAddresses(ID users.UserID) []users.Address {
-	return make([]users.Address, 0)
-}
-
-func (r *MemoryUserRepository) AttachAddress(ID users.UserID, addressID users.AddressID) error {
-	return nil
-}
-
-func (r *MemoryUserRepository) DetachAddress(ID users.UserID, addressID users.AddressID) error {
-	return nil
-}
-
 func (r *MemoryUserRepository) SaveVerificationCode(ID users.UserID, code string) error {
 	found := false
 	for i, u := range r.users {

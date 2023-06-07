@@ -27,3 +27,20 @@ type UpdateUserDTO struct {
 	Phone  string            `json:"phone"`
 	Scopes []users.ScopeName `json:"scopes"`
 }
+
+type ListAddressDTO struct {
+	ID            users.AddressID `json:"id"`
+	Department    string          `json:"department"`
+	City          string          `json:"city"`
+	Address       string          `json:"address"`
+	ReceiverPhone string          `json:"receiver_phone"`
+	ReceiverName  string          `json:"receiver_name"`
+}
+
+type CreateAddressDTO struct {
+	Department    string `json:"department"`
+	City          string `json:"city"`
+	Address       string `json:"address"`
+	ReceiverPhone string `json:"receiver_phone"`
+	ReceiverName  string `json:"receiver_name"`
+}

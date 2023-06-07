@@ -56,16 +56,15 @@ func (s *UserService) Deactivate(ID users.UserID) error {
 	return s.repo.Deactivate(ID)
 }
 
+func (s *UserService) ListAddresses(id users.UserID) []users.Address {
+	return s.addressRepo.List(id)
+}
+
 func (s *UserService) AddAddress(
 	ID users.UserID, department string, city string, address string, receiverPhone string,
 	receiverName string,
 ) (users.Address, error) {
-	createdAddress, err := s.addressRepo.Add(department, city, address, receiverPhone, receiverName)
-	if err != nil {
-		return users.Address{}, err
-	}
-
-	err = s.repo.AttachAddress(ID, createdAddress.ID)
+	createdAddress, err := s.addressRepo.Add(ID, department, city, address, receiverPhone, receiverName)
 	if err != nil {
 		return users.Address{}, err
 	}
@@ -74,11 +73,7 @@ func (s *UserService) AddAddress(
 }
 
 func (s *UserService) DeleteAddress(ID users.UserID, addressID users.AddressID) error {
-	err := s.repo.DetachAddress(ID, addressID)
-	if err != nil {
-		return err
-	}
-	err = s.addressRepo.Delete(addressID)
+	err := s.addressRepo.Delete(addressID)
 	if err != nil {
 		return err
 	}

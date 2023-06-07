@@ -11,3 +11,14 @@ func MapToListUserDTO(user users.User) ListUserDTO {
 		Scopes: user.Scopes,
 	}
 }
+
+func MapToListAddressDTO(address users.Address) ListAddressDTO {
+	return ListAddressDTO{
+		ID:            address.ID,
+		Department:    address.Department,
+		City:          address.City,
+		Address:       address.Address,
+		ReceiverPhone: address.ReceiverPhone,
+		ReceiverName:  address.ReceiverName,
+	}
+}
