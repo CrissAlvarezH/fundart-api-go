@@ -10,6 +10,15 @@ type ListUserDTO struct {
 	Scopes []users.ScopeName `json:"scopes"`
 }
 
+type RetrieveUserDTO struct {
+	ID        users.UserID      `json:"id"`
+	Name      string            `json:"name"`
+	Email     string            `json:"email"`
+	Phone     string            `json:"phone"`
+	Scopes    []users.ScopeName `json:"scopes"`
+	Addresses []ListAddressDTO  `json:"addresses"`
+}
+
 type RegisterUserDTO struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`

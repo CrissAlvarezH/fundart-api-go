@@ -67,7 +67,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, MapToListUserDTO(user))
+	c.JSON(http.StatusOK, MapToRetrieveUserDTO(user))
 }
 
 func (h *UserHandler) Register(c *gin.Context) {
@@ -94,7 +94,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, MapToListUserDTO(user))
+	c.JSON(http.StatusCreated, MapToRetrieveUserDTO(user))
 }
 
 func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
@@ -141,7 +141,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, MapToListUserDTO(user))
+	c.JSON(http.StatusOK, MapToRetrieveUserDTO(user))
 }
 
 func (h *UserHandler) ListAddresses(c *gin.Context) {

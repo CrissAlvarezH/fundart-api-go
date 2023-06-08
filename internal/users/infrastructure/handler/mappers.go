@@ -12,6 +12,17 @@ func MapToListUserDTO(user users.User) ListUserDTO {
 	}
 }
 
+func MapToRetrieveUserDTO(user users.User) RetrieveUserDTO {
+	return RetrieveUserDTO{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Phone:     user.Phone,
+		Scopes:    user.Scopes,
+		Addresses: MapToListAddressesDTO(user.Addresses),
+	}
+}
+
 func MapToListAddressDTO(address users.Address) ListAddressDTO {
 	return ListAddressDTO{
 		ID:            address.ID,

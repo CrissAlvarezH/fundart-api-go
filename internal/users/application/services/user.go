@@ -33,7 +33,11 @@ func (s *UserService) List(
 }
 
 func (s *UserService) GetByID(ID users.UserID) (users.User, bool) {
-	return s.repo.GetByID(ID)
+	user, ok := s.repo.GetByID(ID)
+	if ok == true {
+		user.Addresses = s.addressRepo.List(ID)
+	}
+	return user, ok
 }
 
 func (s *UserService) Add(
