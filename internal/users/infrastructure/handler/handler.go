@@ -26,6 +26,7 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.POST("/api/v1/users/", h.Register)
 	e.POST("/api/v1/users/:id/verification-code/", h.ValidateVerificationCode)
 	e.PUT("/api/v1/users/:id/", h.Update)
+	e.DELETE("/api/v1/users/:id/", h.Delete)
 
 	e.GET("/api/v1/users/:id/addresses", h.ListAddresses)
 	e.POST("/api/v1/users/:id/addresses/", h.AddAddress)
@@ -142,6 +143,22 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MapToRetrieveUserDTO(user))
+}
+
+func (h *UserHandler) Delete(c *gin.Context) {
+	ID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	err = h.service.Deactivate(users.UserID(ID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 func (h *UserHandler) ListAddresses(c *gin.Context) {

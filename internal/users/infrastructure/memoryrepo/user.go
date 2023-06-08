@@ -104,7 +104,10 @@ func (r *MemoryUserRepository) List(
 func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 	for _, u := range r.users {
 		if u.ID == ID {
-			return mapToUser(u), true
+			if u.IsActive == true {
+				return mapToUser(u), true
+			}
+			break
 		}
 	}
 	return users.User{}, false
@@ -142,7 +145,13 @@ func (r *MemoryUserRepository) Update(
 }
 
 func (r *MemoryUserRepository) Deactivate(ID users.UserID) error {
-	return nil
+	for i, u := range r.users {
+		if u.ID == ID {
+			r.users[i].IsActive = false
+			return nil
+		}
+	}
+	return ports.UserDoesNotExists
 }
 
 func (r *MemoryUserRepository) Activate(ID users.UserID) bool {
