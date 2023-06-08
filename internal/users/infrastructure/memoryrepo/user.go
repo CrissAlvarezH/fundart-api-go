@@ -113,6 +113,30 @@ func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 	return users.User{}, false
 }
 
+func (r *MemoryUserRepository) GetByEmail(email string) (users.User, bool) {
+	for _, u := range r.users {
+		if u.Email == email {
+			if u.IsActive == true {
+				return mapToUser(u), true
+			}
+			break
+		}
+	}
+	return users.User{}, false
+}
+
+func (r *MemoryUserRepository) GetPassword(ID users.UserID) (string, bool) {
+	for _, u := range r.users {
+		if u.ID == ID {
+			if u.IsActive == true {
+				return u.Password, true
+			}
+			break
+		}
+	}
+	return "", false
+}
+
 func (r *MemoryUserRepository) Add(
 	name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 ) (users.User, error) {

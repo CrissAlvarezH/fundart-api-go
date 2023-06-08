@@ -26,6 +26,11 @@ type RegisterUserDTO struct {
 	Password string `json:"password" binding:"required,gte=5"`
 }
 
+type LoginUserDTO struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required,gte=5"`
+}
+
 type ValidateVerificationCodeDTO struct {
 	Code string `json:"code" binding:"required"`
 }

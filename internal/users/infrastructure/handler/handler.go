@@ -24,6 +24,7 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.GET("/api/v1/users", h.List)
 	e.GET("/api/v1/users/:id", h.GetByID)
 	e.POST("/api/v1/users/", h.Register)
+	e.POST("/api/v1/users/login", h.Login)
 	e.POST("/api/v1/users/:id/verification-code/", h.ValidateVerificationCode)
 	e.PUT("/api/v1/users/:id/", h.Update)
 	e.DELETE("/api/v1/users/:id/", h.Delete)
@@ -69,6 +70,25 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MapToRetrieveUserDTO(user))
+}
+
+func (h *UserHandler) Login(c *gin.Context) {
+	var body LoginUserDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, err := h.service.Login(body.Email, body.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		gin.H{"access_token": token.AccessToken, "refresh": token.RefreshToken},
+	)
 }
 
 func (h *UserHandler) Register(c *gin.Context) {

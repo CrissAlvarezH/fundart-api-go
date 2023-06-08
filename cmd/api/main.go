@@ -41,7 +41,7 @@ func main() {
 			ID:        1,
 			Name:      "Cristian",
 			Email:     "cristian@email.com",
-			Password:  "23456",
+			Password:  "23456_encrypt",
 			Phone:     "320684398",
 			IsActive:  true,
 			CreatedAt: time.Time{},
@@ -164,8 +164,12 @@ func main() {
 	addressMemoRepo := memoryrepo.NewMemoryAddressRepository(make([]memoryrepo.MemoryAddress, 0))
 	mockPassManager := infrastructure.NewMockPasswordManager()
 	mockVerifyCode := notifications.NewMockVerificationCodeManager()
+	mockJWTManager := infrastructure.NewMockJWTManager(userMemoRepo)
 
-	userService := services.NewUserService(userMemoRepo, addressMemoRepo, mockVerifyCode, mockPassManager)
+	userService := services.NewUserService(
+		userMemoRepo, addressMemoRepo, mockVerifyCode,
+		mockPassManager, mockJWTManager,
+	)
 	userHandler := handler.NewUserHandler(userService)
 
 	userHandler.AddRoutes(app)

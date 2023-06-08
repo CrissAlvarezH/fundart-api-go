@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/ports"
 	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"math/rand"
@@ -12,17 +13,20 @@ type UserService struct {
 	addressRepo             ports.AddressRepository
 	verificationCodeManager ports.VerificationCodeManager
 	passwordManager         ports.PasswordManager
+	jwtManager              ports.JWTManager
 }
 
 func NewUserService(
 	repo ports.UserRepository, addressRepo ports.AddressRepository,
-	verificationCodeManager ports.VerificationCodeManager, passwordManager ports.PasswordManager,
+	verificationCodeManager ports.VerificationCodeManager,
+	passwordManager ports.PasswordManager, jwtManager ports.JWTManager,
 ) UserService {
 	return UserService{
 		repo:                    repo,
 		addressRepo:             addressRepo,
 		verificationCodeManager: verificationCodeManager,
 		passwordManager:         passwordManager,
+		jwtManager:              jwtManager,
 	}
 }
 
@@ -38,6 +42,30 @@ func (s *UserService) GetByID(ID users.UserID) (users.User, bool) {
 		user.Addresses = s.addressRepo.List(ID)
 	}
 	return user, ok
+}
+
+func (s *UserService) Login(email string, password string) (ports.Token, error) {
+	user, ok := s.repo.GetByEmail(email)
+	if ok == false {
+		return ports.Token{}, ports.InvalidCredentials
+	}
+
+	encryptedPassword, ok := s.repo.GetPassword(user.ID)
+	if ok == false {
+		return ports.Token{}, ports.InvalidCredentials
+	}
+
+	ok, err := s.passwordManager.Verify(password, encryptedPassword)
+	if err != nil || ok == false {
+		return ports.Token{}, ports.InvalidCredentials
+	}
+
+	token, err := s.jwtManager.Create(user)
+	if err != nil || ok == false {
+		return ports.Token{}, errors.New("error to create JWT")
+	}
+
+	return token, nil
 }
 
 func (s *UserService) Add(

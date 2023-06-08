@@ -8,11 +8,14 @@ import (
 var (
 	UserDoesNotExists    = errors.New("user does not exists")
 	AddressDoesNotExists = errors.New("address does not exists")
+	InvalidCredentials   = errors.New("invalid credentials")
 )
 
 type UserRepository interface {
 	List(filters map[string]string, limit int, offset int) ([]users.User, int)
 	GetByID(ID users.UserID) (users.User, bool)
+	GetByEmail(email string) (users.User, bool)
+	GetPassword(ID users.UserID) (string, bool)
 	Add(
 		name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 	) (users.User, error)
