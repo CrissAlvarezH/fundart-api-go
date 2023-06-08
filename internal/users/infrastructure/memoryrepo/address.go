@@ -1,6 +1,9 @@
 package memoryrepo
 
-import users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
+import (
+	"github.com/CrissAlvarezH/fundart-api/internal/users/application/ports"
+	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
+)
 
 type MemoryAddress struct {
 	ID            users.AddressID
@@ -77,9 +80,32 @@ func (r *MemoryAddressRepository) Update(
 	ID users.AddressID, department string, city string, address string,
 	receiverPhone string, receiverName string,
 ) (users.Address, error) {
-	return users.Address{}, nil
+	for i, u := range r.addresses {
+		if u.ID == ID {
+			r.addresses[i].Department = department
+			r.addresses[i].City = city
+			r.addresses[i].Address = address
+			r.addresses[i].ReceiverName = receiverPhone
+			r.addresses[i].ReceiverPhone = receiverName
+			return mapToAddress(r.addresses[i]), nil
+		}
+	}
+	return users.Address{}, ports.AddressDoesNotExists
 }
 
 func (r *MemoryAddressRepository) Delete(ID users.AddressID) error {
+	found := false
+	filtered := make([]MemoryAddress, 0, len(r.addresses))
+	for _, a := range r.addresses {
+		if a.ID != ID {
+			filtered = append(filtered, a)
+			found = true
+		}
+	}
+
+	r.addresses = filtered
+	if found == false {
+		return ports.AddressDoesNotExists
+	}
 	return nil
 }

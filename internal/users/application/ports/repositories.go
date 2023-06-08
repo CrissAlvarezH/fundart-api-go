@@ -6,7 +6,8 @@ import (
 )
 
 var (
-	UserDoesNotExists = errors.New("User does not exists")
+	UserDoesNotExists    = errors.New("user does not exists")
+	AddressDoesNotExists = errors.New("address does not exists")
 )
 
 type UserRepository interface {

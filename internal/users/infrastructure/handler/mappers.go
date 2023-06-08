@@ -22,3 +22,18 @@ func MapToListAddressDTO(address users.Address) ListAddressDTO {
 		ReceiverName:  address.ReceiverName,
 	}
 }
+
+func MapToListAddressesDTO(address []users.Address) []ListAddressDTO {
+	dtos := make([]ListAddressDTO, 0, len(address))
+	for _, a := range address {
+		dtos = append(dtos, ListAddressDTO{
+			ID:            a.ID,
+			Department:    a.Department,
+			City:          a.City,
+			Address:       a.Address,
+			ReceiverPhone: a.ReceiverPhone,
+			ReceiverName:  a.ReceiverName,
+		})
+	}
+	return dtos
+}

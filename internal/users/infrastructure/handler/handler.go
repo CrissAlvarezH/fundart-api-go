@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"errors"
 	"github.com/CrissAlvarezH/fundart-api/internal/common"
+	"github.com/CrissAlvarezH/fundart-api/internal/users/application/ports"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
 	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"github.com/gin-gonic/gin"
@@ -27,6 +29,8 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 
 	e.GET("/api/v1/users/:id/addresses", h.ListAddresses)
 	e.POST("/api/v1/users/:id/addresses/", h.AddAddress)
+	e.PUT("/api/v1/users/:id/addresses/:address_id/", h.UpdateAddress)
+	e.DELETE("/api/v1/users/:id/addresses/:address_id/", h.DeleteAddress)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -148,12 +152,7 @@ func (h *UserHandler) ListAddresses(c *gin.Context) {
 	}
 
 	addresses := h.service.ListAddresses(users.UserID(userID))
-
-	addressesDTO := make([]ListAddressDTO, 0, len(addresses))
-	for _, a := range addresses {
-		addressesDTO = append(addressesDTO, MapToListAddressDTO(a))
-	}
-
+	addressesDTO := MapToListAddressesDTO(addresses)
 	c.JSON(http.StatusOK, addressesDTO)
 }
 
@@ -180,5 +179,71 @@ func (h *UserHandler) AddAddress(c *gin.Context) {
 	}
 
 	addresses := h.service.ListAddresses(users.UserID(userID))
-	c.JSON(http.StatusCreated, addresses)
+	addressesDTO := MapToListAddressesDTO(addresses)
+	c.JSON(http.StatusCreated, addressesDTO)
+}
+
+func (h *UserHandler) UpdateAddress(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	addressID, err := strconv.Atoi(c.Param("address_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "address id is not a valid number"})
+		return
+	}
+
+	var body CreateAddressDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err = h.service.UpdateAddress(
+		users.AddressID(addressID), body.Department, body.City,
+		body.Address, body.ReceiverPhone, body.ReceiverName,
+	)
+	if err != nil {
+		statusError := http.StatusInternalServerError
+		if errors.Is(err, ports.AddressDoesNotExists) {
+			statusError = http.StatusNotFound
+		}
+		c.JSON(statusError, gin.H{"error": err.Error()})
+		return
+	}
+
+	addresses := h.service.ListAddresses(users.UserID(userID))
+	addressesDTO := MapToListAddressesDTO(addresses)
+	c.JSON(http.StatusOK, addressesDTO)
+}
+
+func (h *UserHandler) DeleteAddress(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	addressID, err := strconv.Atoi(c.Param("address_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "address id is not a valid number"})
+		return
+	}
+
+	err = h.service.DeleteAddress(users.UserID(userID), users.AddressID(addressID))
+	if err != nil {
+		statusError := http.StatusInternalServerError
+		if errors.Is(err, ports.AddressDoesNotExists) {
+			statusError = http.StatusNotFound
+		}
+		c.JSON(statusError, gin.H{"error": err.Error()})
+		return
+	}
+
+	addresses := h.service.ListAddresses(users.UserID(userID))
+	addressesDTO := MapToListAddressesDTO(addresses)
+	c.JSON(http.StatusOK, addressesDTO)
 }
