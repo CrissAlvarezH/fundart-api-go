@@ -1,12 +1,14 @@
 package ports
 
-type MessageProvider string
+import "errors"
 
-const (
-	MessageProviderSMS   MessageProvider = "sms"
-	MessageProviderEmail MessageProvider = "email"
+var (
+	InvalidValidationCode = errors.New("invalid validation code")
 )
 
+type MessageProvider string
+
 type VerificationCodeManager interface {
-	Send(code string, target string, provider MessageProvider) error
+	SendEmailToVerifyAccount(code string, email string) error
+	SendEmailToRecoverPassword(code string, email string) error
 }

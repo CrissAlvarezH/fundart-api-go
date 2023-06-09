@@ -7,16 +7,17 @@ import (
 )
 
 type MemoryUser struct {
-	ID               users.UserID
-	Name             string
-	Email            string
-	Password         string
-	Phone            string
-	IsActive         bool
-	CreatedAt        time.Time
-	Addresses        []users.Address
-	Scopes           []users.ScopeName
-	VerificationCode string
+	ID                   users.UserID
+	Name                 string
+	Email                string
+	Password             string
+	Phone                string
+	IsActive             bool
+	CreatedAt            time.Time
+	Addresses            []users.Address
+	Scopes               []users.ScopeName
+	VerificationCode     string
+	RecoveryPasswordCode string
 }
 
 func mapToMemoryUser(user users.User, password string) MemoryUser {
@@ -168,6 +169,16 @@ func (r *MemoryUserRepository) Update(
 	return users.User{}, ports.UserDoesNotExists
 }
 
+func (r *MemoryUserRepository) ChangePassword(ID users.UserID, newPassword string) error {
+	for i, u := range r.users {
+		if u.ID == ID {
+			r.users[i].Password = newPassword
+			return nil
+		}
+	}
+	return ports.UserDoesNotExists
+}
+
 func (r *MemoryUserRepository) Deactivate(ID users.UserID) error {
 	for i, u := range r.users {
 		if u.ID == ID {
@@ -188,7 +199,7 @@ func (r *MemoryUserRepository) Activate(ID users.UserID) bool {
 	return false
 }
 
-func (r *MemoryUserRepository) SaveVerificationCode(ID users.UserID, code string) error {
+func (r *MemoryUserRepository) SaveAccountVerificationCode(ID users.UserID, code string) error {
 	found := false
 	for i, u := range r.users {
 		if u.ID == ID {
@@ -205,10 +216,36 @@ func (r *MemoryUserRepository) SaveVerificationCode(ID users.UserID, code string
 	return nil
 }
 
-func (r *MemoryUserRepository) ValidateVerificationCode(ID users.UserID, code string) bool {
+func (r *MemoryUserRepository) ValidateAccountVerificationCode(ID users.UserID, code string) bool {
 	for _, u := range r.users {
 		if u.ID == ID {
 			return u.VerificationCode == code
+		}
+	}
+	return false
+}
+
+func (r *MemoryUserRepository) SaveRecoveryPasswordCode(ID users.UserID, code string) error {
+	found := false
+	for i, u := range r.users {
+		if u.ID == ID {
+			r.users[i].RecoveryPasswordCode = code
+			found = true
+			break
+		}
+	}
+
+	if found == false {
+		return ports.UserDoesNotExists
+	}
+
+	return nil
+}
+
+func (r *MemoryUserRepository) ValidateRecoveryPasswordCode(ID users.UserID, code string) bool {
+	for _, u := range r.users {
+		if u.ID == ID {
+			return u.RecoveryPasswordCode == code
 		}
 	}
 	return false

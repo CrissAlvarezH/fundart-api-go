@@ -21,14 +21,20 @@ func NewUserHandler(service services.UserService) UserHandler {
 }
 
 func (h *UserHandler) AddRoutes(e *gin.Engine) {
+	// users
 	e.GET("/api/v1/users", h.List)
 	e.GET("/api/v1/users/:id", h.GetByID)
 	e.POST("/api/v1/users/", h.Register)
 	e.POST("/api/v1/users/login", h.Login)
-	e.POST("/api/v1/users/:id/verification-code/", h.ValidateVerificationCode)
+	e.POST("/api/v1/users/:id/verification-code/", h.ValidateAccountVerificationCode)
 	e.PUT("/api/v1/users/:id/", h.Update)
 	e.DELETE("/api/v1/users/:id/", h.Delete)
 
+	// recovery password
+	e.POST("/api/v1/users/recovery-password/request", h.RequestRecoveryPassword)
+	e.POST("/api/v1/users/recovery-password/", h.RecoveryPassword)
+
+	// addresses
 	e.GET("/api/v1/users/:id/addresses", h.ListAddresses)
 	e.POST("/api/v1/users/:id/addresses/", h.AddAddress)
 	e.PUT("/api/v1/users/:id/addresses/:address_id/", h.UpdateAddress)
@@ -109,7 +115,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	err = h.service.SendVerificationCode(user)
+	err = h.service.SendAccountVerificationCode(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -118,7 +124,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, MapToRetrieveUserDTO(user))
 }
 
-func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
+func (h *UserHandler) ValidateAccountVerificationCode(c *gin.Context) {
 	var body ValidateVerificationCodeDTO
 	if err := c.BindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -131,7 +137,7 @@ func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
 		return
 	}
 
-	userWasActivated := h.service.ValidateVerificationCode(users.UserID(userID), body.Code)
+	userWasActivated := h.service.ValidateAccountVerificationCode(users.UserID(userID), body.Code)
 
 	if userWasActivated == false {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
@@ -139,6 +145,47 @@ func (h *UserHandler) ValidateVerificationCode(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"details": "User was activated successfully"})
+}
+
+func (h *UserHandler) RequestRecoveryPassword(c *gin.Context) {
+	var body RequestRecoveryPasswordDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.service.SendRecoveryPasswordRequest(body.Email)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, ports.UserDoesNotExists) {
+			status = http.StatusNotFound
+		}
+
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"details": "message sent successfully"})
+}
+
+func (h *UserHandler) RecoveryPassword(c *gin.Context) {
+	var body RecoveryPasswordDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.service.RecoveryPassword(body.Email, body.NewPassword, body.Code)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, ports.InvalidValidationCode) {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"details": "recovery password successfully"})
 }
 
 func (h *UserHandler) Update(c *gin.Context) {

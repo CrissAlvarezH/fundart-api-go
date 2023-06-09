@@ -22,11 +22,15 @@ type UserRepository interface {
 	Update(
 		ID users.UserID, name string, email string, phone string, scopes []users.ScopeName,
 	) (users.User, error)
+	ChangePassword(ID users.UserID, newPassword string) error
 	Deactivate(ID users.UserID) error
 	Activate(ID users.UserID) bool
 
-	SaveVerificationCode(ID users.UserID, code string) error
-	ValidateVerificationCode(ID users.UserID, code string) bool
+	SaveAccountVerificationCode(ID users.UserID, code string) error
+	ValidateAccountVerificationCode(ID users.UserID, code string) bool
+
+	SaveRecoveryPasswordCode(ID users.UserID, code string) error
+	ValidateRecoveryPasswordCode(ID users.UserID, code string) bool
 }
 
 type AddressRepository interface {

@@ -119,26 +119,71 @@ func (s *UserService) UpdateAddress(
 	return s.addressRepo.Update(addressID, department, city, address, receiverPhone, receiverName)
 }
 
-func (s *UserService) SendVerificationCode(user users.User) error {
+func (s *UserService) SendAccountVerificationCode(user users.User) error {
 	codeRangeMin := 1000
 	codeRangeMax := 9999
 	code := strconv.Itoa(rand.Intn(codeRangeMax-codeRangeMin) + codeRangeMin)
 
-	err := s.verificationCodeManager.Send(code, user.Email, ports.MessageProviderEmail)
+	err := s.verificationCodeManager.SendEmailToVerifyAccount(code, user.Email)
 	if err != nil {
 		return err
 	}
 
-	err = s.repo.SaveVerificationCode(user.ID, code)
+	err = s.repo.SaveAccountVerificationCode(user.ID, code)
 	return err
 }
 
-func (s *UserService) ValidateVerificationCode(ID users.UserID, code string) bool {
-	isValid := s.repo.ValidateVerificationCode(ID, code)
+func (s *UserService) ValidateAccountVerificationCode(ID users.UserID, code string) bool {
+	isValid := s.repo.ValidateAccountVerificationCode(ID, code)
 
 	if isValid == true {
 		ok := s.repo.Activate(ID)
 		return ok
 	}
 	return false
+}
+
+func (s *UserService) SendRecoveryPasswordRequest(email string) error {
+	codeRangeMin := 100000000
+	codeRangeMax := 999999999
+	code := strconv.Itoa(rand.Intn(codeRangeMax-codeRangeMin) + codeRangeMin)
+
+	user, ok := s.repo.GetByEmail(email)
+	if ok == false {
+		return ports.UserDoesNotExists
+	}
+
+	err := s.verificationCodeManager.SendEmailToRecoverPassword(code, email)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.SaveRecoveryPasswordCode(user.ID, code)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) RecoveryPassword(email string, newPassword string, code string) error {
+	user, ok := s.repo.GetByEmail(email)
+	if ok == false {
+		return ports.UserDoesNotExists
+	}
+	ok = s.repo.ValidateRecoveryPasswordCode(user.ID, code)
+	if ok == false {
+		return ports.InvalidValidationCode
+	}
+
+	encryptedPassword, err := s.passwordManager.Encrypt(newPassword)
+	if err != nil {
+		return err
+	}
+	err = s.repo.ChangePassword(user.ID, encryptedPassword)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

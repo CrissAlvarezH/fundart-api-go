@@ -35,6 +35,16 @@ type ValidateVerificationCodeDTO struct {
 	Code string `json:"code" binding:"required"`
 }
 
+type RequestRecoveryPasswordDTO struct {
+	Email string `json:"email" binding:"required"`
+}
+
+type RecoveryPasswordDTO struct {
+	Email       string `json:"email" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,gte=5"`
+	Code        string `json:"code" binding:"required"`
+}
+
 type UpdateUserDTO struct {
 	Name   string            `json:"name" binding:"required"`
 	Email  string            `json:"email" binding:"required"`

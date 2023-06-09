@@ -52,7 +52,7 @@ func main() {
 			ID:        2,
 			Name:      "Yulisa",
 			Email:     "yuli@email.com",
-			Password:  "dddddd",
+			Password:  "ddd_encrypt",
 			Phone:     "442546536",
 			IsActive:  true,
 			CreatedAt: time.Time{},

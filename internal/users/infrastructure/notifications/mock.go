@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"github.com/CrissAlvarezH/fundart-api/internal/users/application/ports"
 	"log"
 )
 
@@ -12,7 +11,12 @@ func NewMockVerificationCodeManager() *MockVerificationCodeManager {
 	return &MockVerificationCodeManager{}
 }
 
-func (m *MockVerificationCodeManager) Send(code string, target string, provider ports.MessageProvider) error {
-	log.Println("Send code:", code, "with provider:", provider)
+func (m *MockVerificationCodeManager) SendEmailToVerifyAccount(code string, email string) error {
+	log.Println("Send verification account code:", code, "to:", email)
+	return nil
+}
+
+func (m *MockVerificationCodeManager) SendEmailToRecoverPassword(code string, email string) error {
+	log.Println("Send recover password code:", code, "to:", email)
 	return nil
 }
