@@ -84,6 +84,31 @@ func (s *UserService) Update(
 	return s.repo.Update(ID, name, email, phone, scopes)
 }
 
+func (s *UserService) ChangePassword(ID users.UserID, currentPassword string, newPassword string) error {
+	encryptedPassword, ok := s.repo.GetPassword(ID)
+	if ok == false {
+		return ports.UserDoesNotExists
+	}
+	ok, err := s.passwordManager.Verify(currentPassword, encryptedPassword)
+	if err != nil {
+		return err
+	}
+	if ok == false {
+		return ports.InvalidCredentials
+	}
+
+	newPass, err := s.passwordManager.Encrypt(newPassword)
+	if err != nil {
+		return err
+	}
+	err = s.repo.ChangePassword(ID, newPass)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *UserService) Deactivate(ID users.UserID) error {
 	return s.repo.Deactivate(ID)
 }

@@ -29,6 +29,7 @@ func (h *UserHandler) AddRoutes(e *gin.Engine) {
 	e.POST("/api/v1/users/:id/verification-code/", h.ValidateAccountVerificationCode)
 	e.PUT("/api/v1/users/:id/", h.Update)
 	e.DELETE("/api/v1/users/:id/", h.Delete)
+	e.PUT("/api/v1/users/:id/password/", h.ChangePassword)
 
 	// recovery password
 	e.POST("/api/v1/users/recovery-password/request", h.RequestRecoveryPassword)
@@ -210,6 +211,34 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MapToRetrieveUserDTO(user))
+}
+
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	var body ChangePasswordDTO
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is not a valid number"})
+		return
+	}
+
+	err = h.service.ChangePassword(users.UserID(userID), body.CurrentPassword, body.NewPassword)
+	if err != nil {
+		status := http.StatusInternalServerError
+		message := err.Error()
+		if errors.Is(err, ports.InvalidCredentials) || errors.Is(err, ports.UserDoesNotExists) {
+			status = http.StatusBadRequest
+			message = "invalid credentials"
+		}
+		c.JSON(status, gin.H{"error": message})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"details": "password changed successfully"})
 }
 
 func (h *UserHandler) Delete(c *gin.Context) {

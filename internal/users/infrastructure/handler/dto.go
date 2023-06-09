@@ -52,6 +52,11 @@ type UpdateUserDTO struct {
 	Scopes []users.ScopeName `json:"scopes"`
 }
 
+type ChangePasswordDTO struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 type ListAddressDTO struct {
 	ID            users.AddressID `json:"id"`
 	Department    string          `json:"department"`
