@@ -172,7 +172,9 @@ func main() {
 	)
 	userHandler := handler.NewUserHandler(userService)
 
-	userHandler.AddRoutes(app)
+	apiV1Routes := app.Group("/api/v1")
+
+	userHandler.AddRoutes(apiV1Routes)
 
 	err := app.Run(":8000")
 	if err != nil {

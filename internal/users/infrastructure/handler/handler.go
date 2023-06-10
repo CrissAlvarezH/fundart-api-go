@@ -20,26 +20,26 @@ func NewUserHandler(service services.UserService) UserHandler {
 	return UserHandler{service: service}
 }
 
-func (h *UserHandler) AddRoutes(e *gin.Engine) {
+func (h *UserHandler) AddRoutes(g *gin.RouterGroup) {
 	// users
-	e.GET("/api/v1/users", h.List)
-	e.GET("/api/v1/users/:id", h.GetByID)
-	e.POST("/api/v1/users/", h.Register)
-	e.POST("/api/v1/users/login", h.Login)
-	e.POST("/api/v1/users/:id/verification-code/", h.ValidateAccountVerificationCode)
-	e.PUT("/api/v1/users/:id/", h.Update)
-	e.DELETE("/api/v1/users/:id/", h.Delete)
-	e.PUT("/api/v1/users/:id/password/", h.ChangePassword)
+	g.GET("/users", h.List)
+	g.GET("/users/:id", h.GetByID)
+	g.POST("/users", h.Register)
+	g.POST("/users/login", h.Login)
+	g.POST("/users/:id/verification-code/", h.ValidateAccountVerificationCode)
+	g.PUT("/users/:id/", h.Update)
+	g.DELETE("/users/:id/", h.Delete)
+	g.PUT("/users/:id/password/", h.ChangePassword)
 
 	// recovery password
-	e.POST("/api/v1/users/recovery-password/request", h.RequestRecoveryPassword)
-	e.POST("/api/v1/users/recovery-password/", h.RecoveryPassword)
+	g.POST("/users/recovery-password/request", h.RequestRecoveryPassword)
+	g.POST("/users/recovery-password/", h.RecoveryPassword)
 
 	// addresses
-	e.GET("/api/v1/users/:id/addresses", h.ListAddresses)
-	e.POST("/api/v1/users/:id/addresses/", h.AddAddress)
-	e.PUT("/api/v1/users/:id/addresses/:address_id/", h.UpdateAddress)
-	e.DELETE("/api/v1/users/:id/addresses/:address_id/", h.DeleteAddress)
+	g.GET("/users/:id/addresses", h.ListAddresses)
+	g.POST("/users/:id/addresses/", h.AddAddress)
+	g.PUT("/users/:id/addresses/:address_id/", h.UpdateAddress)
+	g.DELETE("/users/:id/addresses/:address_id/", h.DeleteAddress)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
