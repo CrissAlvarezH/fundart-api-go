@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure"
@@ -15,7 +16,9 @@ import (
 	"time"
 )
 
-func createMockUserService(userData []memoryrepo.MemoryUser, addressData []memoryrepo.MemoryAddress) services.UserService {
+func createMockUserService(
+	userData []memoryrepo.MemoryUser, addressData []memoryrepo.MemoryAddress,
+) (services.UserService, notifications.MockVerificationCodeManager) {
 	userMemoRepo := memoryrepo.NewMemoryUserRepository(userData)
 
 	addressMemoRepo := memoryrepo.NewMemoryAddressRepository(addressData)
@@ -27,7 +30,7 @@ func createMockUserService(userData []memoryrepo.MemoryUser, addressData []memor
 		userMemoRepo, addressMemoRepo, mockVerifyCode,
 		mockPassManager, mockJWTManager,
 	)
-	return userService
+	return userService, *mockVerifyCode
 }
 
 func TestUserHandler_List(t *testing.T) {
@@ -45,7 +48,7 @@ func TestUserHandler_List(t *testing.T) {
 		},
 		{
 			ID:        2,
-			Name:      "Yulisa",
+			Name:      "Yuli",
 			Email:     "yuli@email.com",
 			Password:  "ddd_encrypt",
 			Phone:     "442546536",
@@ -66,7 +69,7 @@ func TestUserHandler_List(t *testing.T) {
 			Scopes:    nil,
 		},
 	}
-	userService := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
@@ -108,9 +111,9 @@ func TestUserHandler_List(t *testing.T) {
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// must there is just one item because page size is 2, total items are 3 and we are in second page
+	// must there is just one item because page size is 2, total items are 3, and we are in second page
 	resBody = make(map[string]interface{})
-	if err := json.Unmarshal([]byte(w.Body.String()), &resBody); err != nil {
+	if err := json.Unmarshal(w.Body.Bytes(), &resBody); err != nil {
 		t.Error("error parsing to json:", w.Body.String())
 	}
 
@@ -137,7 +140,7 @@ func TestUserHandler_GetByID(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
@@ -166,12 +169,67 @@ func TestUserHandler_GetByID(t *testing.T) {
 	}
 
 	// TESTING UNHAPPY PATH
-	// this user does not exists
+	// this user does not exist
 	req, _ = http.NewRequest(http.MethodGet, "/api/v1/users/10", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusNotFound {
 		t.Error("incorrect status code:", w.Code, "expected not found")
+	}
+}
+
+func TestUserHandler_Login(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt", // the mock password manager add _encrypt to the passwords
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    nil,
+	}
+	userData := []memoryrepo.MemoryUser{cristianUser}
+	userService, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.New()
+	apiV1Routes := router.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	// TEST HAPPY PATH
+	reqBody := bytes.NewReader([]byte(`{"email": "cristian@email.com", "password": "23456"}`))
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/users/login", reqBody)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("login status code:", w.Code, "expected", http.StatusOK)
+		return
+	}
+
+	resBody := make(map[string]string)
+	if err := json.Unmarshal(w.Body.Bytes(), &resBody); err != nil {
+		t.Error("error parsing json login response:", err)
+	}
+
+	if _, ok := resBody["access_token"]; ok == false {
+		t.Error("login does not return 'access_token', body:", w.Body.String())
+	}
+	if _, ok := resBody["refresh"]; ok == false {
+		t.Error("login does not return 'refresh', body:", w.Body.String())
+	}
+
+	// TEST UNHAPPY PATH
+	reqBody = bytes.NewReader([]byte(`{"email": "cristian@email.com", "password": "23456__"}`))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/login", reqBody)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error("login status code:", w.Code, "expected", http.StatusBadRequest)
+		return
 	}
 }
