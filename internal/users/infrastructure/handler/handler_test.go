@@ -233,3 +233,45 @@ func TestUserHandler_Login(t *testing.T) {
 		return
 	}
 }
+
+func TestUserHandler_Register(t *testing.T) {
+	service, _ := createMockUserService(make([]memoryrepo.MemoryUser, 0), make([]memoryrepo.MemoryAddress, 0))
+	userHandler := handler.NewUserHandler(service)
+
+	routes := gin.New()
+	apiV1Routes := routes.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	reqBodyRaw := `
+		{ 
+			"name": "Juan",
+			"email": "juan@email.com",
+			"phone": "3207846634",
+			"password": "333333"
+		}
+	`
+	reqBody := bytes.NewReader([]byte(reqBodyRaw))
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/users", reqBody)
+	w := httptest.NewRecorder()
+	routes.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Error("register user response code:", w.Code, "expected:", http.StatusCreated)
+		t.Log("register body res:", w.Body.String())
+		return
+	}
+
+	resBody := make(map[string]interface{})
+	if err := json.Unmarshal(w.Body.Bytes(), &resBody); err != nil {
+		t.Error("error parsing register user body:", err)
+		return
+	}
+
+	if resBody["email"].(string) != "juan@email.com" || resBody["phone"].(string) != "3207846634" {
+		t.Error(
+			"register user return email and phone incorrect:", w.Body.String(),
+			"expected:", "juan@email.com, 3207846634",
+		)
+	}
+
+}

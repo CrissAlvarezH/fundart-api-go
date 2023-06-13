@@ -141,9 +141,12 @@ func (r *MemoryUserRepository) GetPassword(ID users.UserID) (string, bool) {
 func (r *MemoryUserRepository) Add(
 	name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 ) (users.User, error) {
-	lastUser := r.users[len(r.users)-1]
+	lastUserID := users.UserID(0)
+	if len(r.users) > 0 {
+		lastUserID = r.users[len(r.users)-1].ID
+	}
 	newUser := users.User{
-		ID:       lastUser.ID + 1,
+		ID:       lastUserID + 1,
 		Name:     name,
 		Email:    email,
 		Phone:    phone,
