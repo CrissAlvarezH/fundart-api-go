@@ -18,7 +18,10 @@ import (
 
 func createMockUserService(
 	userData []memoryrepo.MemoryUser, addressData []memoryrepo.MemoryAddress,
-) (services.UserService, notifications.MockVerificationCodeManager) {
+) (
+	services.UserService, notifications.MockVerificationCodeManager,
+	memoryrepo.MemoryUserRepository,
+) {
 	userMemoRepo := memoryrepo.NewMemoryUserRepository(userData)
 
 	addressMemoRepo := memoryrepo.NewMemoryAddressRepository(addressData)
@@ -30,7 +33,7 @@ func createMockUserService(
 		userMemoRepo, addressMemoRepo, mockVerifyCode,
 		mockPassManager, mockJWTManager,
 	)
-	return userService, *mockVerifyCode
+	return userService, *mockVerifyCode, *userMemoRepo
 }
 
 func TestUserHandler_List(t *testing.T) {
@@ -69,7 +72,7 @@ func TestUserHandler_List(t *testing.T) {
 			Scopes:    nil,
 		},
 	}
-	userService, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
@@ -140,7 +143,7 @@ func TestUserHandler_GetByID(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
@@ -192,7 +195,7 @@ func TestUserHandler_Login(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
@@ -235,7 +238,7 @@ func TestUserHandler_Login(t *testing.T) {
 }
 
 func TestUserHandler_Register_And_VerifyAccount(t *testing.T) {
-	service, verifyCodeManager := createMockUserService(
+	service, verifyCodeManager, _ := createMockUserService(
 		make([]memoryrepo.MemoryUser, 0), make([]memoryrepo.MemoryAddress, 0),
 	)
 	userHandler := handler.NewUserHandler(service)
@@ -308,7 +311,7 @@ func TestUserHandler_Request_And_RecoveryPassword(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, verifyCodeManager := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, verifyCodeManager, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
@@ -371,5 +374,57 @@ func TestUserHandler_Request_And_RecoveryPassword(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Error("login with previous pass response code:", w.Code, "expected:", http.StatusBadRequest)
 		t.Log("login res body:", w.Body.String())
+	}
+}
+
+func TestUserHandler_Update(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt",
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    nil,
+	}
+	userData := []memoryrepo.MemoryUser{cristianUser}
+	userService, _, userRepo := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.New()
+	apiV1Routes := router.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	// UPDATE USER
+	newPhone := "3207774343"
+	newEmail := "alvarez@email.com"
+	reqBody := bytes.NewReader([]byte(`{
+		"name": "Cristian Alvarez",
+		"email": "` + newEmail + `",
+		"phone": "` + newPhone + `",
+		"scopes": []
+	}`))
+	req, _ := http.NewRequest(
+		http.MethodPut, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/",
+		reqBody,
+	)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("update user res status code:", w.Code, "expected:", http.StatusOK)
+		t.Log("update user res body:", w.Body.String())
+		return
+	}
+
+	// VALIDATE CHANGES IN USER REPOSITORY
+	userInRepo := userRepo.Users[0]
+	if userInRepo.Email != newEmail {
+		t.Error("email updated incorrect:", userInRepo.Email, "expected:", newEmail)
+	}
+	if userInRepo.Phone != newPhone {
+		t.Error("phone updated incorrect:", userInRepo.Phone, "expected:", newPhone)
 	}
 }

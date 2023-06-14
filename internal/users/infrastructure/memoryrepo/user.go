@@ -48,21 +48,21 @@ func mapToUser(memoryUser MemoryUser) users.User {
 }
 
 type MemoryUserRepository struct {
-	users []MemoryUser
+	Users []MemoryUser
 }
 
 func NewMemoryUserRepository(users []MemoryUser) *MemoryUserRepository {
-	return &MemoryUserRepository{users: users}
+	return &MemoryUserRepository{Users: users}
 }
 
 func (r *MemoryUserRepository) List(
 	filters map[string]string, limit int, offset int,
 ) ([]users.User, int) {
-	filtered := make([]MemoryUser, 0, len(r.users))
+	filtered := make([]MemoryUser, 0, len(r.Users))
 	if len(filters) == 0 {
-		filtered = r.users
+		filtered = r.Users
 	} else {
-		for _, v := range r.users {
+		for _, v := range r.Users {
 			name, ok := filters["name"]
 			if ok == true && v.Name == name {
 				filtered = append(filtered, v)
@@ -103,7 +103,7 @@ func (r *MemoryUserRepository) List(
 }
 
 func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.ID == ID {
 			if u.IsActive == true {
 				return mapToUser(u), true
@@ -115,7 +115,7 @@ func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 }
 
 func (r *MemoryUserRepository) GetByEmail(email string) (users.User, bool) {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.Email == email {
 			if u.IsActive == true {
 				return mapToUser(u), true
@@ -127,7 +127,7 @@ func (r *MemoryUserRepository) GetByEmail(email string) (users.User, bool) {
 }
 
 func (r *MemoryUserRepository) GetPassword(ID users.UserID) (string, bool) {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.ID == ID {
 			if u.IsActive == true {
 				return u.Password, true
@@ -142,8 +142,8 @@ func (r *MemoryUserRepository) Add(
 	name string, email string, password string, phone string, isActive bool, scopes []users.ScopeName,
 ) (users.User, error) {
 	lastUserID := users.UserID(0)
-	if len(r.users) > 0 {
-		lastUserID = r.users[len(r.users)-1].ID
+	if len(r.Users) > 0 {
+		lastUserID = r.Users[len(r.Users)-1].ID
 	}
 	newUser := users.User{
 		ID:       lastUserID + 1,
@@ -153,29 +153,29 @@ func (r *MemoryUserRepository) Add(
 		IsActive: isActive,
 		Scopes:   scopes,
 	}
-	r.users = append(r.users, mapToMemoryUser(newUser, password))
+	r.Users = append(r.Users, mapToMemoryUser(newUser, password))
 	return newUser, nil
 }
 
 func (r *MemoryUserRepository) Update(
 	ID users.UserID, name string, email string, phone string, scopes []users.ScopeName,
 ) (users.User, error) {
-	for i, u := range r.users {
+	for i, u := range r.Users {
 		if u.ID == ID {
-			r.users[i].Name = name
-			r.users[i].Email = email
-			r.users[i].Phone = phone
-			r.users[i].Scopes = scopes
-			return mapToUser(r.users[i]), nil
+			r.Users[i].Name = name
+			r.Users[i].Email = email
+			r.Users[i].Phone = phone
+			r.Users[i].Scopes = scopes
+			return mapToUser(r.Users[i]), nil
 		}
 	}
 	return users.User{}, ports.UserDoesNotExists
 }
 
 func (r *MemoryUserRepository) ChangePassword(ID users.UserID, newPassword string) error {
-	for i, u := range r.users {
+	for i, u := range r.Users {
 		if u.ID == ID {
-			r.users[i].Password = newPassword
+			r.Users[i].Password = newPassword
 			return nil
 		}
 	}
@@ -183,9 +183,9 @@ func (r *MemoryUserRepository) ChangePassword(ID users.UserID, newPassword strin
 }
 
 func (r *MemoryUserRepository) Deactivate(ID users.UserID) error {
-	for i, u := range r.users {
+	for i, u := range r.Users {
 		if u.ID == ID {
-			r.users[i].IsActive = false
+			r.Users[i].IsActive = false
 			return nil
 		}
 	}
@@ -193,9 +193,9 @@ func (r *MemoryUserRepository) Deactivate(ID users.UserID) error {
 }
 
 func (r *MemoryUserRepository) Activate(ID users.UserID) bool {
-	for i, u := range r.users {
+	for i, u := range r.Users {
 		if u.ID == ID {
-			r.users[i].IsActive = true
+			r.Users[i].IsActive = true
 			return true
 		}
 	}
@@ -204,9 +204,9 @@ func (r *MemoryUserRepository) Activate(ID users.UserID) bool {
 
 func (r *MemoryUserRepository) SaveAccountVerificationCode(ID users.UserID, code string) error {
 	found := false
-	for i, u := range r.users {
+	for i, u := range r.Users {
 		if u.ID == ID {
-			r.users[i].VerificationCode = code
+			r.Users[i].VerificationCode = code
 			found = true
 			break
 		}
@@ -220,7 +220,7 @@ func (r *MemoryUserRepository) SaveAccountVerificationCode(ID users.UserID, code
 }
 
 func (r *MemoryUserRepository) ValidateAccountVerificationCode(ID users.UserID, code string) bool {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.ID == ID {
 			return u.VerificationCode == code
 		}
@@ -230,9 +230,9 @@ func (r *MemoryUserRepository) ValidateAccountVerificationCode(ID users.UserID, 
 
 func (r *MemoryUserRepository) SaveRecoveryPasswordCode(ID users.UserID, code string) error {
 	found := false
-	for i, u := range r.users {
+	for i, u := range r.Users {
 		if u.ID == ID {
-			r.users[i].RecoveryPasswordCode = code
+			r.Users[i].RecoveryPasswordCode = code
 			found = true
 			break
 		}
@@ -246,7 +246,7 @@ func (r *MemoryUserRepository) SaveRecoveryPasswordCode(ID users.UserID, code st
 }
 
 func (r *MemoryUserRepository) ValidateRecoveryPasswordCode(ID users.UserID, code string) bool {
-	for _, u := range r.users {
+	for _, u := range r.Users {
 		if u.ID == ID {
 			return u.RecoveryPasswordCode == code
 		}
