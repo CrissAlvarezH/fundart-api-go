@@ -532,3 +532,139 @@ func TestUserHandler_Delete(t *testing.T) {
 		t.Log("users in repo:", userRepo.Users)
 	}
 }
+
+func TestUserHandler_List_Add_Update_And_DeleteAddress(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt",
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    nil,
+	}
+	addresses := make([]memoryrepo.MemoryAddress, 0)
+	userData := []memoryrepo.MemoryUser{cristianUser}
+	userService, _, _ := createMockUserService(userData, addresses)
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.New()
+	apiV1Routes := router.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	// CHECK THERE AREN'T ANY ADDRESS
+	if len(userService.ListAddresses(cristianUser.ID)) != 0 {
+		t.Error("address must be empty")
+		t.Log("addresses:", userService.ListAddresses(cristianUser.ID))
+		return
+	}
+
+	// ADD ADDRESS
+	reqBody := bytes.NewReader([]byte(`{
+		"department": "cordoba",
+		"city": "planeta rica",
+		"address": "calle 24 crr 45",
+		"receiver_name": "Cristian Alvarez",
+		"receiver_phone": "3205467456"
+	}`))
+	req, _ := http.NewRequest(
+		http.MethodPost, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses/", reqBody,
+	)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Error("status code created address:", w.Code, "expected:", http.StatusCreated)
+		t.Log("body:", w.Body.String())
+		return
+	}
+	firstAddress := userService.ListAddresses(cristianUser.ID)[0]
+	if len(userService.ListAddresses(cristianUser.ID)) != 1 {
+		t.Error("address must one address")
+		t.Log("addresses:", userService.ListAddresses(cristianUser.ID))
+		return
+	}
+
+	// UPDATE ADDRESS
+	newDep := "cundinamarca updated"
+	newAddress := "cr 3 cll 4 updated"
+	reqBody = bytes.NewReader([]byte(`{
+		"department": "` + newDep + `",
+		"city": "bogota",
+		"address": "` + newAddress + `",
+		"receiver_name": "Cristian Alvarez",
+		"receiver_phone": "3497775888"
+	}`))
+	firstAddressID := strconv.Itoa(int(firstAddress.ID))
+	req, _ = http.NewRequest(
+		http.MethodPut,
+		"/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses/"+firstAddressID+"/",
+		reqBody,
+	)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("status code created address:", w.Code, "expected:", http.StatusCreated)
+		t.Log("body:", w.Body.String())
+		return
+	}
+	firstAddress = userService.ListAddresses(cristianUser.ID)[0]
+	if firstAddress.Department != newDep || firstAddress.Address != newAddress {
+		t.Error("address was not updated, id:", firstAddressID)
+		t.Log("res body:", w.Body.String())
+		return
+	}
+
+	// ADD A SECOND ADDRESS
+	reqBody = bytes.NewReader([]byte(`{
+		"department": "cundinamarca",
+		"city": "bogota",
+		"address": "cr 2 cll 4",
+		"receiver_name": "Cristian Alvarez",
+		"receiver_phone": "3497775888"
+	}`))
+	req, _ = http.NewRequest(
+		http.MethodPost, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses/", reqBody,
+	)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Error("status code created address:", w.Code, "expected:", http.StatusCreated)
+		t.Log("body:", w.Body.String())
+		return
+	}
+	if len(userService.ListAddresses(cristianUser.ID)) != 2 {
+		t.Error("address must one address")
+		t.Log("addresses:", userService.ListAddresses(cristianUser.ID))
+		return
+	}
+
+	// LIST ADDRESS (2 address on repo)
+	req, _ = http.NewRequest(
+		http.MethodGet, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses", nil,
+	)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("list addresses status code:", w.Code, "expected:", http.StatusOK)
+		t.Log("response:", w.Body.String())
+		return
+	}
+
+	resBody := make([]interface{}, 0)
+	if err := json.Unmarshal(w.Body.Bytes(), &resBody); err != nil {
+		t.Error("error to parsing address json:", err, "body:")
+		t.Log("body", w.Body.String())
+		return
+	}
+
+	if len(resBody) != 2 {
+		t.Error("incorrect amount of address:", len(resBody), "expected 2")
+		return
+	}
+}

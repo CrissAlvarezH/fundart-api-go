@@ -39,16 +39,16 @@ func mapToAddress(memoAddress MemoryAddress) users.Address {
 }
 
 type MemoryAddressRepository struct {
-	addresses []MemoryAddress
+	Addresses []MemoryAddress
 }
 
 func NewMemoryAddressRepository(addresses []MemoryAddress) *MemoryAddressRepository {
-	return &MemoryAddressRepository{addresses: addresses}
+	return &MemoryAddressRepository{Addresses: addresses}
 }
 
 func (r *MemoryAddressRepository) List(userID users.UserID) []users.Address {
 	var addresses = make([]users.Address, 0)
-	for _, a := range r.addresses {
+	for _, a := range r.Addresses {
 		if a.UserID == userID {
 			addresses = append(addresses, mapToAddress(a))
 		}
@@ -60,8 +60,8 @@ func (r *MemoryAddressRepository) Add(
 	userID users.UserID, department string, city string, address string, receiverPhone string, receiverName string,
 ) (users.Address, error) {
 	lastAddressID := 0
-	if len(r.addresses) > 0 {
-		lastAddressID = int(r.addresses[len(r.addresses)-1].ID)
+	if len(r.Addresses) > 0 {
+		lastAddressID = int(r.Addresses[len(r.Addresses)-1].ID)
 	}
 
 	newAddress := users.Address{
@@ -72,7 +72,7 @@ func (r *MemoryAddressRepository) Add(
 		ReceiverPhone: receiverPhone,
 		ReceiverName:  receiverName,
 	}
-	r.addresses = append(r.addresses, mapToMemoryAddress(newAddress, userID))
+	r.Addresses = append(r.Addresses, mapToMemoryAddress(newAddress, userID))
 	return newAddress, nil
 }
 
@@ -80,14 +80,14 @@ func (r *MemoryAddressRepository) Update(
 	ID users.AddressID, department string, city string, address string,
 	receiverPhone string, receiverName string,
 ) (users.Address, error) {
-	for i, u := range r.addresses {
+	for i, u := range r.Addresses {
 		if u.ID == ID {
-			r.addresses[i].Department = department
-			r.addresses[i].City = city
-			r.addresses[i].Address = address
-			r.addresses[i].ReceiverName = receiverPhone
-			r.addresses[i].ReceiverPhone = receiverName
-			return mapToAddress(r.addresses[i]), nil
+			r.Addresses[i].Department = department
+			r.Addresses[i].City = city
+			r.Addresses[i].Address = address
+			r.Addresses[i].ReceiverName = receiverPhone
+			r.Addresses[i].ReceiverPhone = receiverName
+			return mapToAddress(r.Addresses[i]), nil
 		}
 	}
 	return users.Address{}, ports.AddressDoesNotExists
@@ -95,15 +95,15 @@ func (r *MemoryAddressRepository) Update(
 
 func (r *MemoryAddressRepository) Delete(ID users.AddressID) error {
 	found := false
-	filtered := make([]MemoryAddress, 0, len(r.addresses))
-	for _, a := range r.addresses {
+	filtered := make([]MemoryAddress, 0, len(r.Addresses))
+	for _, a := range r.Addresses {
 		if a.ID != ID {
 			filtered = append(filtered, a)
 			found = true
 		}
 	}
 
-	r.addresses = filtered
+	r.Addresses = filtered
 	if found == false {
 		return ports.AddressDoesNotExists
 	}
