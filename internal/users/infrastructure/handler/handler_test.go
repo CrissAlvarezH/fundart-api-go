@@ -496,3 +496,39 @@ func TestUserHandler_ChangePassword(t *testing.T) {
 		t.Log("login res body:", w.Body.String())
 	}
 }
+
+func TestUserHandler_Delete(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt",
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    nil,
+	}
+	userData := []memoryrepo.MemoryUser{cristianUser}
+	userService, _, userRepo := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.New()
+	apiV1Routes := router.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Error("delete user code:", w.Code, "expected:", http.StatusNoContent)
+		return
+	}
+
+	userInRepo := userRepo.Users[0]
+	if userInRepo.IsActive == true {
+		t.Error("user was not deleted")
+		t.Log("users in repo:", userRepo.Users)
+	}
+}
