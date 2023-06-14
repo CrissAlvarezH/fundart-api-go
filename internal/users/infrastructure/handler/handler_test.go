@@ -428,3 +428,71 @@ func TestUserHandler_Update(t *testing.T) {
 		t.Error("phone updated incorrect:", userInRepo.Phone, "expected:", newPhone)
 	}
 }
+
+func TestUserHandler_ChangePassword(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt",
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    nil,
+	}
+	userData := []memoryrepo.MemoryUser{cristianUser}
+	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.New()
+	apiV1Routes := router.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	// UPDATE USER
+	newPass := "888888"
+	reqBody := bytes.NewReader([]byte(`{
+		"current_password": "23456",
+		"new_password": "` + newPass + `"
+	}`))
+	req, _ := http.NewRequest(
+		http.MethodPut, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/password/",
+		reqBody,
+	)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("update pass res status code:", w.Code, "expected:", http.StatusOK)
+		t.Log("update pass res body:", w.Body.String())
+		return
+	}
+
+	// TEST NEW PASSWORD WITH LOGIN
+	reqBody = bytes.NewReader([]byte(`{
+		"email": "` + cristianUser.Email + `",
+		"password": "` + newPass + `"
+	}`))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/login", reqBody)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("login after change pass response code:", w.Code, "expected:", http.StatusOK)
+		t.Log("login res body:", w.Body.String())
+	}
+
+	// TEST PREVIOUS PASSWORD WITH LOGIN
+	reqBody = bytes.NewReader([]byte(`{
+		"email": "` + cristianUser.Email + `",
+		"password": "23456"
+	}`))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/login", reqBody)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error("login previous pass response code:", w.Code, "expected:", http.StatusBadRequest)
+		t.Log("login res body:", w.Body.String())
+	}
+}
