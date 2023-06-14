@@ -234,8 +234,10 @@ func TestUserHandler_Login(t *testing.T) {
 	}
 }
 
-func TestUserHandler_Register(t *testing.T) {
-	service, _ := createMockUserService(make([]memoryrepo.MemoryUser, 0), make([]memoryrepo.MemoryAddress, 0))
+func TestUserHandler_Register_And_VerifyAccount(t *testing.T) {
+	service, verifyCodeManager := createMockUserService(
+		make([]memoryrepo.MemoryUser, 0), make([]memoryrepo.MemoryAddress, 0),
+	)
 	userHandler := handler.NewUserHandler(service)
 
 	routes := gin.New()
@@ -274,4 +276,100 @@ func TestUserHandler_Register(t *testing.T) {
 		)
 	}
 
+	verifyCode, ok := verifyCodeManager.AccountCodes["juan@email.com"]
+
+	if ok == false {
+		t.Error("verification account code was not register")
+		return
+	}
+
+	reqBody = bytes.NewReader([]byte(`{"code": "` + verifyCode + `"}`))
+	userID := strconv.Itoa(int(resBody["id"].(float64)))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/"+userID+"/verification-code/", reqBody)
+	w = httptest.NewRecorder()
+	routes.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("account verification status code was:", w.Code, "expected:", http.StatusOK)
+		return
+	}
+}
+
+func TestUserHandler_Request_And_RecoveryPassword(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt", // the mock password manager add _encrypt to the passwords
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    nil,
+	}
+	userData := []memoryrepo.MemoryUser{cristianUser}
+	userService, verifyCodeManager := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.New()
+	apiV1Routes := router.Group("/api/v1")
+	userHandler.AddRoutes(apiV1Routes)
+
+	// REQUEST RECOVERY PASSWORD
+	reqBody := bytes.NewReader([]byte(`{"email": "` + cristianUser.Email + `"}`))
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/users/recovery-password/request", reqBody)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("request recovery pasword status code:", w.Code, "expected:", http.StatusOK)
+		t.Log("response body", w.Body.String())
+		return
+	}
+
+	// USE VALIDATION CODE SENT TO CHANGE PASSWORD
+	codeSent := verifyCodeManager.PassCodes[cristianUser.Email]
+	newPass := "444444"
+	reqBody = bytes.NewReader([]byte(`{
+		"email": "` + cristianUser.Email + `",
+		"new_password": "` + newPass + `",
+		"code": "` + codeSent + `"
+	}`))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/recovery-password/", reqBody)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("recovery password response code:", w.Code, "expected:", http.StatusOK)
+		t.Log("response body:", w.Body.String())
+		return
+	}
+
+	// TEST NEW PASSWORD WITH LOGIN
+	reqBody = bytes.NewReader([]byte(`{
+		"email": "` + cristianUser.Email + `",
+		"password": "` + newPass + `"
+	}`))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/login", reqBody)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Error("login after reset pass response code:", w.Code, "expected:", http.StatusOK)
+		t.Log("login res body:", w.Body.String())
+	}
+
+	// TEST PREVIOUS PASSWORD WITH LOGIN
+	reqBody = bytes.NewReader([]byte(`{
+		"email": "` + cristianUser.Email + `",
+		"password": "23456"
+	}`))
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/login", reqBody)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Error("login with previous pass response code:", w.Code, "expected:", http.StatusBadRequest)
+		t.Log("login res body:", w.Body.String())
+	}
 }
