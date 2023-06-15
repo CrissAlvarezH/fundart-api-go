@@ -3,7 +3,9 @@ package handler_test
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/CrissAlvarezH/fundart-api/internal/common"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
+	users "github.com/CrissAlvarezH/fundart-api/internal/users/domain"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure/handler"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure/memoryrepo"
@@ -20,7 +22,7 @@ func createMockUserService(
 	userData []memoryrepo.MemoryUser, addressData []memoryrepo.MemoryAddress,
 ) (
 	services.UserService, notifications.MockVerificationCodeManager,
-	memoryrepo.MemoryUserRepository,
+	memoryrepo.MemoryUserRepository, infrastructure.MockJWTManager,
 ) {
 	userMemoRepo := memoryrepo.NewMemoryUserRepository(userData)
 
@@ -33,22 +35,23 @@ func createMockUserService(
 		userMemoRepo, addressMemoRepo, mockVerifyCode,
 		mockPassManager, mockJWTManager,
 	)
-	return userService, *mockVerifyCode, *userMemoRepo
+	return userService, *mockVerifyCode, *userMemoRepo, *mockJWTManager
 }
 
 func TestUserHandler_List(t *testing.T) {
+	cristianUser := memoryrepo.MemoryUser{
+		ID:        1,
+		Name:      "Cristian",
+		Email:     "cristian@email.com",
+		Password:  "23456_encrypt",
+		Phone:     "320684398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    []users.ScopeName{users.USERS_READ},
+	}
 	userData := []memoryrepo.MemoryUser{
-		{
-			ID:        1,
-			Name:      "Cristian",
-			Email:     "cristian@email.com",
-			Password:  "23456_encrypt",
-			Phone:     "320684398",
-			IsActive:  true,
-			CreatedAt: time.Time{},
-			Addresses: nil,
-			Scopes:    nil,
-		},
+		cristianUser,
 		{
 			ID:        2,
 			Name:      "Yuli",
@@ -72,45 +75,53 @@ func TestUserHandler_List(t *testing.T) {
 			Scopes:    nil,
 		},
 	}
-	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, _, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
 	// TESTING PAGINATION DATA
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/users", nil)
+	req.Header.Set("Authorization", "Bearer "+cristianUser.Email+"___jwt") // mock token
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Error("status code != 200, code:", w.Code, "response:", w.Body.String())
+		return
 	}
 
 	resBody := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(w.Body.String()), &resBody); err != nil {
 		t.Error("error parsing to json:", w.Body.String())
+		return
 	}
 
 	totalUsers := resBody["pagination"].(map[string]interface{})["total"].(float64)
 	if totalUsers != float64(len(userData)) {
 		t.Error("incorrect total users:", totalUsers)
+		return
 	}
 
 	// test total pages, must be 1 because default page size is 10
 	totalPages := resBody["pagination"].(map[string]interface{})["total_pages"].(float64)
 	if totalPages != 1 {
 		t.Error("incorrect total pages:", totalPages)
+		return
 	}
 
 	bodyResult := resBody["result"].([]interface{})
 	if len(bodyResult) != len(userData) {
 		t.Error("incorrect len of result data", len(bodyResult))
+		return
 	}
 
 	// TEST GO THROUGH PAGINATION FOR PAGES
 	req, _ = http.NewRequest(http.MethodGet, "/api/v1/users?page=2&page_size=2", nil)
+	req.Header.Set("Authorization", "Bearer "+cristianUser.Email+"___jwt") // mock token
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -118,15 +129,18 @@ func TestUserHandler_List(t *testing.T) {
 	resBody = make(map[string]interface{})
 	if err := json.Unmarshal(w.Body.Bytes(), &resBody); err != nil {
 		t.Error("error parsing to json:", w.Body.String())
+		return
 	}
 
 	bodyResult = resBody["result"].([]interface{})
 	if len(bodyResult) != 1 {
 		t.Error("incorrect len of users in second page with page size 2:", len(bodyResult))
+		return
 	}
 	currentPage := resBody["pagination"].(map[string]interface{})["page"].(float64)
 	if currentPage != 2 {
 		t.Error("incorrect current page, must be 2, is:", totalUsers)
+		return
 	}
 }
 
@@ -142,16 +156,29 @@ func TestUserHandler_GetByID(t *testing.T) {
 		Addresses: nil,
 		Scopes:    nil,
 	}
-	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	joseUser := memoryrepo.MemoryUser{
+		ID:        2,
+		Name:      "Jose",
+		Email:     "jose@email.com",
+		Password:  "11111_encrypt",
+		Phone:     "3203454398",
+		IsActive:  true,
+		CreatedAt: time.Time{},
+		Addresses: nil,
+		Scopes:    []users.ScopeName{users.USERS_READ},
+	}
+	userData := []memoryrepo.MemoryUser{cristianUser, joseUser}
+	userService, _, _, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
 	// TESTING HAPPY PATH
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID)), nil)
+	req.Header.Set("Authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -174,6 +201,7 @@ func TestUserHandler_GetByID(t *testing.T) {
 	// TESTING UNHAPPY PATH
 	// this user does not exist
 	req, _ = http.NewRequest(http.MethodGet, "/api/v1/users/10", nil)
+	req.Header.Set("Authorization", "Bearer "+joseUser.Email+"___jwt") // mock jwt
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -195,10 +223,11 @@ func TestUserHandler_Login(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, _, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
@@ -238,13 +267,14 @@ func TestUserHandler_Login(t *testing.T) {
 }
 
 func TestUserHandler_Register_And_VerifyAccount(t *testing.T) {
-	service, verifyCodeManager, _ := createMockUserService(
+	service, verifyCodeManager, _, jwt := createMockUserService(
 		make([]memoryrepo.MemoryUser, 0), make([]memoryrepo.MemoryAddress, 0),
 	)
 	userHandler := handler.NewUserHandler(service)
 
-	routes := gin.New()
-	apiV1Routes := routes.Group("/api/v1")
+	router := gin.New()
+	router.Use(common.Auth(&jwt))
+	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
 	reqBodyRaw := `
@@ -258,7 +288,7 @@ func TestUserHandler_Register_And_VerifyAccount(t *testing.T) {
 	reqBody := bytes.NewReader([]byte(reqBodyRaw))
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/users", reqBody)
 	w := httptest.NewRecorder()
-	routes.ServeHTTP(w, req)
+	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
 		t.Error("register user response code:", w.Code, "expected:", http.StatusCreated)
@@ -290,7 +320,7 @@ func TestUserHandler_Register_And_VerifyAccount(t *testing.T) {
 	userID := strconv.Itoa(int(resBody["id"].(float64)))
 	req, _ = http.NewRequest(http.MethodPost, "/api/v1/users/"+userID+"/verification-code/", reqBody)
 	w = httptest.NewRecorder()
-	routes.ServeHTTP(w, req)
+	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Error("account verification status code was:", w.Code, "expected:", http.StatusOK)
@@ -311,10 +341,11 @@ func TestUserHandler_Request_And_RecoveryPassword(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, verifyCodeManager, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, verifyCodeManager, _, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
@@ -390,10 +421,11 @@ func TestUserHandler_Update(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _, userRepo := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, userRepo, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
@@ -410,6 +442,7 @@ func TestUserHandler_Update(t *testing.T) {
 		http.MethodPut, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/",
 		reqBody,
 	)
+	req.Header.Set("authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -442,10 +475,11 @@ func TestUserHandler_ChangePassword(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _, _ := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, _, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
@@ -459,6 +493,7 @@ func TestUserHandler_ChangePassword(t *testing.T) {
 		http.MethodPut, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/password/",
 		reqBody,
 	)
+	req.Header.Set("authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -510,14 +545,16 @@ func TestUserHandler_Delete(t *testing.T) {
 		Scopes:    nil,
 	}
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _, userRepo := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
+	userService, _, userRepo, jwt := createMockUserService(userData, make([]memoryrepo.MemoryAddress, 0))
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/", nil)
+	req.Header.Set("authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -547,10 +584,11 @@ func TestUserHandler_List_Add_Update_And_DeleteAddress(t *testing.T) {
 	}
 	addresses := make([]memoryrepo.MemoryAddress, 0)
 	userData := []memoryrepo.MemoryUser{cristianUser}
-	userService, _, _ := createMockUserService(userData, addresses)
+	userService, _, _, jwt := createMockUserService(userData, addresses)
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.New()
+	router.Use(common.Auth(&jwt))
 	apiV1Routes := router.Group("/api/v1")
 	userHandler.AddRoutes(apiV1Routes)
 
@@ -572,6 +610,7 @@ func TestUserHandler_List_Add_Update_And_DeleteAddress(t *testing.T) {
 	req, _ := http.NewRequest(
 		http.MethodPost, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses/", reqBody,
 	)
+	req.Header.Set("Authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -603,6 +642,7 @@ func TestUserHandler_List_Add_Update_And_DeleteAddress(t *testing.T) {
 		"/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses/"+firstAddressID+"/",
 		reqBody,
 	)
+	req.Header.Set("authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -629,6 +669,7 @@ func TestUserHandler_List_Add_Update_And_DeleteAddress(t *testing.T) {
 	req, _ = http.NewRequest(
 		http.MethodPost, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses/", reqBody,
 	)
+	req.Header.Set("authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -647,6 +688,7 @@ func TestUserHandler_List_Add_Update_And_DeleteAddress(t *testing.T) {
 	req, _ = http.NewRequest(
 		http.MethodGet, "/api/v1/users/"+strconv.Itoa(int(cristianUser.ID))+"/addresses", nil,
 	)
+	req.Header.Set("authorization", "Bearer "+cristianUser.Email+"___jwt") // mock jwt
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

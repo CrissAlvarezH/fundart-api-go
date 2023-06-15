@@ -22,26 +22,26 @@ func NewUserHandler(service services.UserService) UserHandler {
 
 func (h *UserHandler) AddRoutes(g *gin.RouterGroup) {
 	// users
-	g.GET("/users", h.List)
+	g.GET("/users", common.Valid(ScopeUserRead), h.List)
 	g.GET("/users/:id", common.ValidOr(ScopeUserRead, IsSameUser), h.GetByID)
 	g.POST("/users", h.Register)
 
 	g.POST("/users/login", h.Login)
 
 	g.POST("/users/:id/verification-code/", h.ValidateAccountVerificationCode)
-	g.PUT("/users/:id/", h.Update)
-	g.DELETE("/users/:id/", h.Delete)
-	g.PUT("/users/:id/password/", h.ChangePassword)
+	g.PUT("/users/:id/", common.ValidOr(ScopeUserWrite, IsSameUser), h.Update)
+	g.DELETE("/users/:id/", common.ValidOr(ScopeUserDelete, IsSameUser), h.Delete)
+	g.PUT("/users/:id/password/", common.Valid(IsSameUser), h.ChangePassword)
 
 	// recovery password
 	g.POST("/users/recovery-password/request", h.RequestRecoveryPassword)
 	g.POST("/users/recovery-password/", h.RecoveryPassword)
 
 	// addresses
-	g.GET("/users/:id/addresses", h.ListAddresses)
-	g.POST("/users/:id/addresses/", h.AddAddress)
-	g.PUT("/users/:id/addresses/:address_id/", h.UpdateAddress)
-	g.DELETE("/users/:id/addresses/:address_id/", h.DeleteAddress)
+	g.GET("/users/:id/addresses", common.Valid(IsSameUser), h.ListAddresses)
+	g.POST("/users/:id/addresses/", common.Valid(IsSameUser), h.AddAddress)
+	g.PUT("/users/:id/addresses/:address_id/", common.Valid(IsSameUser), h.UpdateAddress)
+	g.DELETE("/users/:id/addresses/:address_id/", common.Valid(IsSameUser), h.DeleteAddress)
 }
 
 func (h *UserHandler) List(c *gin.Context) {
