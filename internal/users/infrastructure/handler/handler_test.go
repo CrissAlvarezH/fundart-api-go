@@ -218,10 +218,10 @@ func TestUserHandler_Login(t *testing.T) {
 		t.Error("error parsing json login response:", err)
 	}
 
-	if _, ok := resBody["access_token"]; ok == false {
+	if _, ok := resBody["access_token"]; !ok {
 		t.Error("login does not return 'access_token', body:", w.Body.String())
 	}
-	if _, ok := resBody["refresh"]; ok == false {
+	if _, ok := resBody["refresh"]; !ok {
 		t.Error("login does not return 'refresh', body:", w.Body.String())
 	}
 
@@ -281,7 +281,7 @@ func TestUserHandler_Register_And_VerifyAccount(t *testing.T) {
 
 	verifyCode, ok := verifyCodeManager.AccountCodes["juan@email.com"]
 
-	if ok == false {
+	if !ok {
 		t.Error("verification account code was not register")
 		return
 	}
@@ -527,7 +527,7 @@ func TestUserHandler_Delete(t *testing.T) {
 	}
 
 	userInRepo := userRepo.Users[0]
-	if userInRepo.IsActive == true {
+	if userInRepo.IsActive {
 		t.Error("user was not deleted")
 		t.Log("users in repo:", userRepo.Users)
 	}

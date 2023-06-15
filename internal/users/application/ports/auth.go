@@ -21,5 +21,5 @@ type PasswordManager interface {
 
 type JWTManager interface {
 	Create(user users.User) (Token, error)
-	Verify(token Token) (users.User, error)
+	Verify(accessToken string) (users.User, error)
 }

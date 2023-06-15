@@ -38,7 +38,7 @@ func (s *UserService) List(
 
 func (s *UserService) GetByID(ID users.UserID) (users.User, bool) {
 	user, ok := s.repo.GetByID(ID)
-	if ok == true {
+	if ok {
 		user.Addresses = s.addressRepo.List(ID)
 	}
 	return user, ok
@@ -46,26 +46,30 @@ func (s *UserService) GetByID(ID users.UserID) (users.User, bool) {
 
 func (s *UserService) Login(email string, password string) (ports.Token, error) {
 	user, ok := s.repo.GetByEmail(email)
-	if ok == false {
+	if !ok {
 		return ports.Token{}, ports.InvalidCredentials
 	}
 
 	encryptedPassword, ok := s.repo.GetPassword(user.ID)
-	if ok == false {
+	if !ok {
 		return ports.Token{}, ports.InvalidCredentials
 	}
 
 	ok, err := s.passwordManager.Verify(password, encryptedPassword)
-	if err != nil || ok == false {
+	if err != nil || !ok {
 		return ports.Token{}, ports.InvalidCredentials
 	}
 
 	token, err := s.jwtManager.Create(user)
-	if err != nil || ok == false {
+	if err != nil || !ok {
 		return ports.Token{}, errors.New("error to create JWT")
 	}
 
 	return token, nil
+}
+
+func (s *UserService) ValidateJWT(accessToken string) (users.User, error) {
+	return s.jwtManager.Verify(accessToken)
 }
 
 func (s *UserService) Add(
@@ -86,14 +90,14 @@ func (s *UserService) Update(
 
 func (s *UserService) ChangePassword(ID users.UserID, currentPassword string, newPassword string) error {
 	encryptedPassword, ok := s.repo.GetPassword(ID)
-	if ok == false {
+	if !ok {
 		return ports.UserDoesNotExists
 	}
 	ok, err := s.passwordManager.Verify(currentPassword, encryptedPassword)
 	if err != nil {
 		return err
 	}
-	if ok == false {
+	if !ok {
 		return ports.InvalidCredentials
 	}
 
@@ -161,7 +165,7 @@ func (s *UserService) SendAccountVerificationCode(user users.User) error {
 func (s *UserService) ValidateAccountVerificationCode(ID users.UserID, code string) bool {
 	isValid := s.repo.ValidateAccountVerificationCode(ID, code)
 
-	if isValid == true {
+	if isValid {
 		ok := s.repo.Activate(ID)
 		return ok
 	}
@@ -174,7 +178,7 @@ func (s *UserService) SendRecoveryPasswordRequest(email string) error {
 	code := strconv.Itoa(rand.Intn(codeRangeMax-codeRangeMin) + codeRangeMin)
 
 	user, ok := s.repo.GetByEmail(email)
-	if ok == false {
+	if !ok {
 		return ports.UserDoesNotExists
 	}
 
@@ -193,11 +197,11 @@ func (s *UserService) SendRecoveryPasswordRequest(email string) error {
 
 func (s *UserService) RecoveryPassword(email string, newPassword string, code string) error {
 	user, ok := s.repo.GetByEmail(email)
-	if ok == false {
+	if !ok {
 		return ports.UserDoesNotExists
 	}
 	ok = s.repo.ValidateRecoveryPasswordCode(user.ID, code)
-	if ok == false {
+	if !ok {
 		return ports.InvalidValidationCode
 	}
 

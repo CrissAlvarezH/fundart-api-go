@@ -64,17 +64,17 @@ func (r *MemoryUserRepository) List(
 	} else {
 		for _, v := range r.Users {
 			name, ok := filters["name"]
-			if ok == true && v.Name == name {
+			if ok && v.Name == name {
 				filtered = append(filtered, v)
 			}
 
 			email, ok := filters["email"]
-			if ok == true && v.Email == email {
+			if ok && v.Email == email {
 				filtered = append(filtered, v)
 			}
 
 			phone, ok := filters["phone"]
-			if ok == true && v.Phone == phone {
+			if ok && v.Phone == phone {
 				filtered = append(filtered, v)
 			}
 		}
@@ -82,7 +82,7 @@ func (r *MemoryUserRepository) List(
 
 	onlyActives := make([]MemoryUser, 0, len(filtered))
 	for _, u := range filtered {
-		if u.IsActive == true {
+		if u.IsActive {
 			onlyActives = append(onlyActives, u)
 		}
 	}
@@ -105,7 +105,7 @@ func (r *MemoryUserRepository) List(
 func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 	for _, u := range r.Users {
 		if u.ID == ID {
-			if u.IsActive == true {
+			if u.IsActive {
 				return mapToUser(u), true
 			}
 			break
@@ -117,7 +117,7 @@ func (r *MemoryUserRepository) GetByID(ID users.UserID) (users.User, bool) {
 func (r *MemoryUserRepository) GetByEmail(email string) (users.User, bool) {
 	for _, u := range r.Users {
 		if u.Email == email {
-			if u.IsActive == true {
+			if u.IsActive {
 				return mapToUser(u), true
 			}
 			break
@@ -129,7 +129,7 @@ func (r *MemoryUserRepository) GetByEmail(email string) (users.User, bool) {
 func (r *MemoryUserRepository) GetPassword(ID users.UserID) (string, bool) {
 	for _, u := range r.Users {
 		if u.ID == ID {
-			if u.IsActive == true {
+			if u.IsActive {
 				return u.Password, true
 			}
 			break
@@ -212,7 +212,7 @@ func (r *MemoryUserRepository) SaveAccountVerificationCode(ID users.UserID, code
 		}
 	}
 
-	if found == false {
+	if !found {
 		return ports.UserDoesNotExists
 	}
 
@@ -238,7 +238,7 @@ func (r *MemoryUserRepository) SaveRecoveryPasswordCode(ID users.UserID, code st
 		}
 	}
 
-	if found == false {
+	if !found {
 		return ports.UserDoesNotExists
 	}
 

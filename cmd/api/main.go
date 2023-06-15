@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/CrissAlvarezH/fundart-api/internal/common"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/application/services"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure"
 	"github.com/CrissAlvarezH/fundart-api/internal/users/infrastructure/handler"
@@ -15,26 +16,6 @@ import "net/http"
 
 func main() {
 	app := gin.Default()
-
-	app.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
-	})
-	app.POST("/upload", func(c *gin.Context) {
-		form, _ := c.MultipartForm()
-		files := form.File["images"]
-		dst := "./images/"
-
-		for _, file := range files {
-			log.Println(file.Filename)
-
-			// Upload the file to specific dst.
-			err := c.SaveUploadedFile(file, dst)
-			if err != nil {
-				log.Println("error on save image ", file.Filename)
-			}
-		}
-		c.String(http.StatusOK, fmt.Sprintf("%d files uploaded!", len(files)))
-	})
 
 	userData := []memoryrepo.MemoryUser{
 		{
@@ -160,11 +141,33 @@ func main() {
 		},
 	}
 	userMemoRepo := memoryrepo.NewMemoryUserRepository(userData)
+	mockJWTManager := infrastructure.NewMockJWTManager(userMemoRepo)
+
+	app.Use(common.Auth(mockJWTManager))
+
+	app.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+	})
+	app.POST("/upload", func(c *gin.Context) {
+		form, _ := c.MultipartForm()
+		files := form.File["images"]
+		dst := "./images/"
+
+		for _, file := range files {
+			log.Println(file.Filename)
+
+			// Upload the file to specific dst.
+			err := c.SaveUploadedFile(file, dst)
+			if err != nil {
+				log.Println("error on save image ", file.Filename)
+			}
+		}
+		c.String(http.StatusOK, fmt.Sprintf("%d files uploaded!", len(files)))
+	})
 
 	addressMemoRepo := memoryrepo.NewMemoryAddressRepository(make([]memoryrepo.MemoryAddress, 0))
 	mockPassManager := infrastructure.NewMockPasswordManager()
 	mockVerifyCode := notifications.NewMockVerificationCodeManager()
-	mockJWTManager := infrastructure.NewMockJWTManager(userMemoRepo)
 
 	userService := services.NewUserService(
 		userMemoRepo, addressMemoRepo, mockVerifyCode,

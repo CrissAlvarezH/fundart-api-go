@@ -16,6 +16,17 @@ type User struct {
 	Scopes    []ScopeName
 }
 
+func (u *User) HasScope(scopes ...ScopeName) bool {
+	for _, s := range u.Scopes {
+		for _, validateScope := range scopes {
+			if s == validateScope {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 type AddressID int
 
 type Address struct {

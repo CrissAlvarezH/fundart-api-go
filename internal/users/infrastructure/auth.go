@@ -36,10 +36,10 @@ func (m *MockJWTManager) Create(user users.User) (ports.Token, error) {
 	}, nil
 }
 
-func (m *MockJWTManager) Verify(token ports.Token) (users.User, error) {
-	email := strings.Split(token.AccessToken, "___")[0]
+func (m *MockJWTManager) Verify(accessToken string) (users.User, error) {
+	email := strings.Split(accessToken, "___")[0]
 	user, ok := m.userRepo.GetByEmail(email)
-	if ok == false {
+	if !ok {
 		return users.User{}, ports.InvalidToken
 	}
 

@@ -104,7 +104,7 @@ func (r *MemoryAddressRepository) Delete(ID users.AddressID) error {
 	}
 
 	r.Addresses = filtered
-	if found == false {
+	if !found {
 		return ports.AddressDoesNotExists
 	}
 	return nil

@@ -23,9 +23,11 @@ func NewUserHandler(service services.UserService) UserHandler {
 func (h *UserHandler) AddRoutes(g *gin.RouterGroup) {
 	// users
 	g.GET("/users", h.List)
-	g.GET("/users/:id", h.GetByID)
+	g.GET("/users/:id", common.ValidOr(ScopeUserRead, IsSameUser), h.GetByID)
 	g.POST("/users", h.Register)
+
 	g.POST("/users/login", h.Login)
+
 	g.POST("/users/:id/verification-code/", h.ValidateAccountVerificationCode)
 	g.PUT("/users/:id/", h.Update)
 	g.DELETE("/users/:id/", h.Delete)
@@ -71,7 +73,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		return
 	}
 	user, ok := h.service.GetByID(users.UserID(id))
-	if ok == false {
+	if !ok {
 		c.Status(http.StatusNotFound)
 		return
 	}
@@ -140,7 +142,7 @@ func (h *UserHandler) ValidateAccountVerificationCode(c *gin.Context) {
 
 	userWasActivated := h.service.ValidateAccountVerificationCode(users.UserID(userID), body.Code)
 
-	if userWasActivated == false {
+	if !userWasActivated {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
 		return
 	}
