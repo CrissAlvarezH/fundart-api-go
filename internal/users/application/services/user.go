@@ -133,7 +133,7 @@ func (s *UserService) AddAddress(
 	return createdAddress, nil
 }
 
-func (s *UserService) DeleteAddress(ID users.UserID, addressID users.AddressID) error {
+func (s *UserService) DeleteAddress(addressID users.AddressID) error {
 	err := s.addressRepo.Delete(addressID)
 	if err != nil {
 		return err

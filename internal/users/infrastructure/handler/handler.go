@@ -348,7 +348,7 @@ func (h *UserHandler) DeleteAddress(c *gin.Context) {
 		return
 	}
 
-	err = h.service.DeleteAddress(users.UserID(userID), users.AddressID(addressID))
+	err = h.service.DeleteAddress(users.AddressID(addressID))
 	if err != nil {
 		statusError := http.StatusInternalServerError
 		if errors.Is(err, ports.AddressDoesNotExists) {
